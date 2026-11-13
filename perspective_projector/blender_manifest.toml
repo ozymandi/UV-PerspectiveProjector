@@ -1,0 +1,31 @@
+schema_version = "1.0.0"
+
+id = "perspective_projector"
+version = "0.1.0"
+name = "Perspective Projector"
+tagline = "Match a camera to a photo and project it onto geometry"
+maintainer = "Yaroslav Okhranchuk"
+type = "add-on"
+
+tags = ["Camera", "UV", "Import-Export"]
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+platforms = ["windows-x64", "macos-arm64", "macos-x64", "linux-x64"]
+
+# OpenCV 4.11 is the newest release that runs on both numpy 1.26 (Blender 4.2-4.x)
+# and numpy 2.x (Blender 5.x); 4.12+ requires numpy 2.
+wheels = [
+  "./wheels/opencv_python_headless-4.11.0.86-cp37-abi3-win_amd64.whl",
+  "./wheels/opencv_python_headless-4.11.0.86-cp37-abi3-macosx_13_0_arm64.whl",
+  "./wheels/opencv_python_headless-4.11.0.86-cp37-abi3-macosx_13_0_x86_64.whl",
+  "./wheels/opencv_python_headless-4.11.0.86-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+]
+
+[build]
+paths_exclude_pattern = ["__pycache__/", ".*"]
+
+[permissions]
+files = "Read photos and save baked textures next to the .blend file"

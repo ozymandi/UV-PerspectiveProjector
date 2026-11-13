@@ -1,0 +1,35 @@
+{
+ "blender": "5.2.1 LTS",
+ "results": [
+  {
+   "photo": "warehouse.jpg",
+   "auto_confidence": 0.751,
+   "editor_opened": false,
+   "lens_mm": 23.49,
+   "focal_source": "vanishing points",
+   "through_a_mean_diff": 0.0131,
+   "through_b_differs": 0.275,
+   "ok": true
+  },
+  {
+   "photo": "towers_three_point.jpg",
+   "auto_confidence": 0.729,
+   "editor_opened": false,
+   "lens_mm": 28.69,
+   "focal_source": "vanishing points",
+   "through_a_mean_diff": 0.0105,
+   "through_b_differs": 0.2025,
+   "ok": true
+  },
+  {
+   "photo": "church_nave.jpg",
+   "auto_confidence": 0.34,
+   "editor_opened": true,
+   "lens_mm": 20.0,
+   "focal_source": "manual 20 mm",
+   "through_a_mean_diff": 0.0157,
+   "through_b_differs": 0.205,
+   "ok": true
+  }
+ ]
+}

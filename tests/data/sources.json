@@ -1,0 +1,225 @@
+{
+  "version": 1,
+  "entries": {
+    "media/kitchen.jpg": {
+      "source": "pixabay",
+      "id": "2165756",
+      "url": "https://pixabay.com/get/g723cceecbbd7da0a1f8fd722fac2965ae63bd8fd87529ebb17a4b44273875d922b890a6f2c968b6a44869832715a013474e4350167b70a87dde797331ae64da9_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/kitchen-home-interior-modern-room-2165756/",
+      "author": "ClickerHappy",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 848,
+      "bytes": 244127,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:49.846Z"
+    },
+    "media/cafe.jpg": {
+      "source": "pixabay",
+      "id": "1834784",
+      "url": "https://pixabay.com/get/gde474712c11942a9f9830f04a3f14655a05256af030c9999fa2abaa29e3eeb383bcd217d8c027984f8ef7561afd445e20e13041e7cdb5d772df4f9c011814c40_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/brick-wall-chairs-furniture-1834784/",
+      "author": "Pexels",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 853,
+      "bytes": 373938,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:50.511Z"
+    },
+    "media/office.jpg": {
+      "source": "pixabay",
+      "id": "2181980",
+      "url": "https://pixabay.com/get/g7bafb335e2d30fb89907896cd1c697329b774c4aa3bb0621f46d2c2d181ec2d8901032a92a34e4e9ea1bfac7a00bd1ee9729c03c776add52a7d81e935fba1fd2_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/chairs-conference-room-contemporary-2181980/",
+      "author": "Pexels",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 854,
+      "bytes": 178283,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:51.230Z"
+    },
+    "media/corridor_one_point.jpg": {
+      "source": "pixabay",
+      "id": "4225636",
+      "url": "https://pixabay.com/get/g9cfbc5dae75209d0d09c52ae2f23f2d8343619b28bfe3097490d031c5606a2757c4a6015fba466477804272b483ca2a137ece0b0a6da16ee0268f06dd0a2ac98_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/corridor-building-shadows-4225636/",
+      "author": "TheFelip",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 853,
+      "bytes": 157381,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:51.862Z"
+    },
+    "media/street_corner.jpg": {
+      "source": "pixabay",
+      "id": "569115",
+      "url": "https://pixabay.com/get/gde85fdecfa91412fc994f0cb7518c84dbe1cb0fab0242fba021c2bd146e028641a9a68fbb80959b3d2522e9c5a351e9c445fafca98223fe144aad6ec23819de1_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/house-corner-road-urban-crossing-569115/",
+      "author": "Life-Of-Pix",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 853,
+      "bytes": 408930,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:52.422Z"
+    },
+    "media/towers_three_point.jpg": {
+      "source": "pixabay",
+      "id": "4546631",
+      "url": "https://pixabay.com/get/gb9c97b8be35355c53c22c0317f1daa5230f1bbdbb11e19c9d40c5d9c59a3040cd0c795e6da764a234b6aaa750f3f3e918fbdc65ebcdc9a14df3b26775004ce24_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/architecture-building-city-window-4546631/",
+      "author": "652234",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 853,
+      "bytes": 449450,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:53.300Z"
+    },
+    "media/street_one_point.jpg": {
+      "source": "pixabay",
+      "id": "6881040",
+      "url": "https://pixabay.com/get/g58e14a6548e3130067e4f7e123b9bc0166190add00824c29a89b7bb216f137ab8d36bbf0500f50c57cf1bb02a82c7ae1e24557ce55af95a0f5f18547951c7e3f_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/road-houses-city-village-old-town-6881040/",
+      "author": "Tama66",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 852,
+      "bytes": 441774,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:53.810Z"
+    },
+    "media/warehouse.jpg": {
+      "source": "pixabay",
+      "id": "2184358",
+      "url": "https://pixabay.com/get/g30d2fc10c93be2fe2e8548c1f27f0cddd9bc71a8fa969b91fb251bcda7c7038f36d649fd30e2dd1d332e6a4249e955ac62fe3646209bfa60224ec23a4a7c0687_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/production-logistics-center-2184358/",
+      "author": "stafichukanatoly",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 853,
+      "bytes": 462941,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:54.401Z"
+    },
+    "media/church_nave.jpg": {
+      "source": "pixabay",
+      "id": "3481187",
+      "url": "https://pixabay.com/get/g5bf8813d71c06e126674ef7f932902b1c0ef6fbfbdb928cbadf6fe74daeb9f0b7b6dac597e58f02fe27abe590970f61c4d225ccdcfdd08a3ca421c175b616c37_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/church-cathedral-architecture-pews-3481187/",
+      "author": "ddzphoto",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 853,
+      "bytes": 490300,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:54.975Z"
+    },
+    "media/forest_organic.jpg": {
+      "source": "pixabay",
+      "id": "1258845",
+      "url": "https://pixabay.com/get/ga858ee714c059c804f529085eb89f27416dd155b9ee6fe5956aeb1a6569fd9db1609d438db09357551db909102a2edd364ac535735157d6570b42fd6932caa28_1280.jpg",
+      "pageUrl": "https://pixabay.com/photos/forest-trees-fog-moss-forest-floor-1258845/",
+      "author": "cocoparisienne",
+      "licence": {
+        "name": "Pixabay Content License",
+        "url": "https://pixabay.com/service/license-summary/"
+      },
+      "kind": "image",
+      "durationSec": null,
+      "width": 1280,
+      "height": 853,
+      "bytes": 387401,
+      "verdict": {
+        "value": "usable",
+        "reason": "Pixabay Content License: free use and modification, no attribution required; used as local test data"
+      },
+      "decidedBy": "agent",
+      "fetchedAt": "2026-11-13T00:01:55.568Z"
+    }
+  }
+}

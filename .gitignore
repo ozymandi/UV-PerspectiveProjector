@@ -1,0 +1,21 @@
+# build output, portable Blender, isolated test profiles
+build/
+
+# bundled OpenCV wheels: fetched with tools/fetch_wheels.py
+perspective_projector/wheels/
+
+# stock photos (Pixabay licence does not allow redistributing the files) and images derived from them;
+# tests/data/sources.json lists where each photo comes from
+tests/data/media/
+tests/data/overlays/
+tests/e2e/blender_*/*.png
+tests/e2e/blender_*/*.jpg
+
+# local working notes and Claude Code / OpenSpec tooling
+task.md
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/

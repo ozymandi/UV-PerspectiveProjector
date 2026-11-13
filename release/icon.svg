@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- background -->
+  <rect x="0" y="0" width="256" height="256" rx="44" fill="#1d2127"/>
+  <!-- far frustum edges, behind the card -->
+  <g stroke="#f08a24" stroke-width="4" stroke-linecap="round" stroke-opacity="0.45">
+    <line x1="46" y1="128" x2="222" y2="40"/>
+    <line x1="46" y1="128" x2="222" y2="206"/>
+  </g>
+  <!-- the photo card in perspective; its top and bottom edges meet at a vanishing point far left (-201, 114) -->
+  <polygon points="120,58 222,40 222,206 120,184" fill="#e9e4da"/>
+  <!-- floor grid on the card: lines through the same vanishing point, plus two verticals -->
+  <g stroke="#2b6fd6" stroke-linecap="round" fill="none">
+    <line x1="120" y1="141.3" x2="222" y2="150" stroke-width="5"/>
+    <line x1="120" y1="156.5" x2="222" y2="170" stroke-width="5"/>
+    <line x1="120" y1="171.7" x2="222" y2="190" stroke-width="5"/>
+    <line x1="155" y1="144.3" x2="155" y2="177.6" stroke-width="5"/>
+    <line x1="190" y1="147.3" x2="190" y2="183.9" stroke-width="5"/>
+    <line x1="120" y1="114" x2="222" y2="114" stroke-width="3" stroke-dasharray="7 6"/>
+  </g>
+  <!-- near frustum edges -->
+  <g stroke="#f08a24" stroke-width="7" stroke-linecap="round">
+    <line x1="46" y1="128" x2="120" y2="58"/>
+    <line x1="46" y1="128" x2="120" y2="184"/>
+  </g>
+  <!-- camera (projector) -->
+  <circle cx="46" cy="128" r="17" fill="#f08a24"/>
+  <circle cx="46" cy="128" r="7" fill="#1d2127"/>
+</svg>

@@ -1,17 +1,20 @@
 schema_version = "1.0.0"
 
 id = "perspective_projector"
-version = "0.1.0"
+version = "1.0.0"
 name = "Perspective Projector"
 tagline = "Match a camera to a photo and project it onto geometry"
 maintainer = "Yaroslav Okhranchuk"
 type = "add-on"
 
-tags = ["Camera", "UV", "Import-Export"]
+website = "https://github.com/ozymandi/UV-PerspectiveProjector"
+
+tags = ["Camera", "UV", "Bake"]
 
 blender_version_min = "4.2.0"
 
 license = ["SPDX:GPL-3.0-or-later"]
+copyright = ["2026 Yaroslav Okhranchuk"]
 
 platforms = ["windows-x64", "macos-arm64", "macos-x64", "linux-x64"]
 

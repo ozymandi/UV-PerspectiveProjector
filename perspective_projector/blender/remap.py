@@ -7,8 +7,8 @@ import os
 
 import bpy
 import numpy as np
-from bpy_extras.object_utils import world_to_camera_view
 
+from ..core import clip
 from . import projection
 
 REMAP_UV = "RemapUV"
@@ -76,22 +76,23 @@ def uv_coverage(obj, uv_name):
 
 
 def projected_pixels(scene, cam, obj):
-    """Approximate photo pixels covered by the object in camera A (projected face areas, clipped to the frame)."""
+    """Photo pixels covered by the object in camera A: face areas clipped to the part in front of
+    the camera and to the frame, so faces that reach behind camera A still count."""
     w, h = scene.render.resolution_x, scene.render.resolution_y
-    mw = obj.matrix_world
-    pts = [world_to_camera_view(scene, cam, mw @ v.co) for v in obj.data.vertices]
+    tr, _br, bl, _tl = cam.data.view_frame(scene=scene)  # camera-space frame corners at depth -tr.z
+    depth = -tr.z
+    fx0, fx1 = bl.x / depth, tr.x / depth
+    fy0, fy1 = bl.y / depth, tr.y / depth
+    near = max(cam.data.clip_start, 1e-6)
+    to_cam = cam.matrix_world.inverted() @ obj.matrix_world
+    pts = [tuple(to_cam @ v.co) for v in obj.data.vertices]
     total = 0.0
     for poly in obj.data.polygons:
-        ps = [pts[i] for i in poly.vertices]
-        if any(p.z <= 0 for p in ps):
+        front = clip.clip_near([pts[i] for i in poly.vertices], near)
+        if len(front) < 3:
             continue
-        xy = [(min(max(p.x, 0.0), 1.0) * w, min(max(p.y, 0.0), 1.0) * h) for p in ps]
-        a = 0.0
-        for k in range(len(xy)):
-            x0, y0 = xy[k]
-            x1, y1 = xy[(k + 1) % len(xy)]
-            a += x0 * y1 - x1 * y0
-        total += abs(a) / 2.0
+        xy = [((x / -z - fx0) / (fx1 - fx0) * w, (y / -z - fy0) / (fy1 - fy0) * h) for x, y, z in front]
+        total += clip.area(clip.clip_rect(xy, 0.0, 0.0, w, h))
     return total
 
 

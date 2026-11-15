@@ -31,17 +31,42 @@ def _active(context):
     return cam
 
 
+PAIR_COUNT = 3  # pairs 1 and 2 in ``lines``, the optional third pair in ``lines3``
+
+
+def _store(props, index):
+    """(property name, local endpoint index) for endpoint ``index`` (0..11)."""
+    return ("lines", index) if index < 8 else ("lines3", index - 8)
+
+
 def set_point(scene, index, u, v):
-    """Move endpoint ``index`` (0..7) to normalised image coords and re-solve camera A."""
+    """Move endpoint ``index`` (0..11) to normalised image coords and re-solve camera A."""
     props = scene.perspective_projector
-    values = list(props.lines)
-    values[2 * index], values[2 * index + 1] = float(u), float(v)
-    props.lines = values  # update callback re-solves; failures keep the last valid camera
+    name, k = _store(props, index)
+    values = list(getattr(props, name))
+    values[2 * k], values[2 * k + 1] = float(u), float(v)
+    setattr(props, name, values)  # update callback re-solves; failures keep the last valid camera
 
 
 def get_point(scene, index):
-    v = scene.perspective_projector.lines
-    return v[2 * index], v[2 * index + 1]
+    props = scene.perspective_projector
+    name, k = _store(props, index)
+    v = getattr(props, name)
+    return v[2 * k], v[2 * k + 1]
+
+
+def pair_axes(props):
+    return (props.pair0_axis, props.pair1_axis, calibration.third_axis(props))
+
+
+def visible_pairs(props):
+    return 3 if props.pair2_enabled and calibration.third_axis(props) else 2
+
+
+def pair_color(props, pair):
+    if props.invalid_pair == pair:
+        return INVALID_COLOR
+    return AXIS_COLORS.get(pair_axes(props)[pair], INVALID_COLOR)
 
 
 # ---------------------------------------------------------------- gizmos
@@ -120,7 +145,7 @@ class PP_GGT_lines(bpy.types.GizmoGroup):
 
     def setup(self, context):
         self.handles = []
-        for i in range(8):
+        for i in range(4 * PAIR_COUNT):
             gz = self.gizmos.new(PP_GT_handle.bl_idname)
             gz.index = i
             gz.color_highlight = (1.0, 0.9, 0.2)
@@ -130,15 +155,15 @@ class PP_GGT_lines(bpy.types.GizmoGroup):
         cam = _active(context)
         rect = view.camera_frame_region(context, cam) if cam else None
         props = context.scene.perspective_projector
-        axes = (props.pair0_axis, props.pair1_axis)
+        shown = visible_pairs(props)
         for i, gz in enumerate(self.handles):
-            gz.rect = rect
-            if rect is not None:
+            pair = i // 4
+            gz.hide = pair >= shown
+            gz.rect = rect if pair < shown else None
+            if gz.rect is not None:
                 u, v = get_point(context.scene, i)
                 gz.pos = view.image_to_region(rect, u, v)
-            pair = i // 4
-            color = INVALID_COLOR if props.invalid_pair == pair else AXIS_COLORS[axes[pair]]
-            gz.color = color[:3]
+            gz.color = pair_color(props, pair)[:3]
 
 
 # ---------------------------------------------------------------- line drawing
@@ -160,19 +185,14 @@ def _draw_lines():
     if rect is None:
         return
     props = context.scene.perspective_projector
-    values = list(props.lines)
     region = context.region
     shader = gpu.shader.from_builtin("POLYLINE_UNIFORM_COLOR")
     gpu.state.blend_set("ALPHA")
     shader.uniform_float("viewportSize", (region.width, region.height))
 
-    for pair in range(2):
-        axis = props.pair0_axis if pair == 0 else props.pair1_axis
-        color = INVALID_COLOR if props.invalid_pair == pair else AXIS_COLORS[axis]
-        pts = []
-        for k in range(4):
-            idx = pair * 4 + k
-            pts.append(view.image_to_region(rect, values[2 * idx], values[2 * idx + 1]))
+    for pair in range(visible_pairs(props)):
+        color = pair_color(props, pair)
+        pts = [view.image_to_region(rect, *get_point(context.scene, pair * 4 + k)) for k in range(4)]
         # the two editable segments
         shader.uniform_float("lineWidth", 2.0)
         shader.uniform_float("color", color)

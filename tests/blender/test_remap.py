@@ -45,6 +45,28 @@ props = H.props()
 from bl_ext.user_default.perspective_projector.blender import remap as remap_mod  # noqa: E402
 
 uv_name, _ = "ProjUV", None
+
+# ---- photo coverage counts faces that reach behind camera A
+covered = remap_mod.projected_pixels(scene, cam_a, plane)
+H.check(abs(covered - 4000 * 3000) / (4000 * 3000) < 0.01, f"frame-filling plane covers {covered} px")
+ground = cam_a.matrix_world.translation.copy()
+ground.z = 0.0
+fwd = cam_a.matrix_world.to_3x3() @ Vector((0.0, 0.0, -1.0))
+fwd.z = 0.0
+fwd.normalize()
+side = Vector((fwd.y, -fwd.x, 0.0))
+corners = [ground - fwd * 2 - side * 20, ground - fwd * 2 + side * 20,
+           ground + fwd * 60 + side * 20, ground + fwd * 60 - side * 20]
+me = bpy.data.meshes.new("behind_floor")
+me.from_pydata([tuple(c) for c in corners], [], [(0, 1, 2, 3)])
+behind = bpy.data.objects.new("behind_floor", me)
+scene.collection.objects.link(behind)
+bpy.context.view_layer.update()
+behind_px = remap_mod.projected_pixels(scene, cam_a, behind)
+print("floor reaching behind camera A covers", behind_px)
+H.check(behind_px > 0.2 * 4000 * 3000, f"floor reaching behind camera A covers only {behind_px} px")
+bpy.data.objects.remove(behind)
+
 before_a = H.render_camera(cam_a, "remap_before_a")
 
 # ---- 7.1 / 7.2 / 7.3 remap the plane (unsaved file -> packed)

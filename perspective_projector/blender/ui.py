@@ -51,6 +51,12 @@ class PP_PT_camera(bpy.types.Panel):
         row = layout.row(align=True)
         row.prop(props, "pair0_axis", text="Pair 1")
         row.prop(props, "pair1_axis", text="Pair 2")
+        row = layout.row(align=True)
+        row.prop(props, "pair2_enabled")
+        axis3 = calibration.third_axis(props)
+        sub = row.row()
+        sub.enabled = props.pair2_enabled
+        sub.label(text=f"Pair 3: {axis3}" if axis3 else "Pair 3: -")
         layout.operator("perspective_projector.swap_xy", icon="ARROW_LEFTRIGHT")
 
         col = layout.column(align=True)
@@ -58,6 +64,9 @@ class PP_PT_camera(bpy.types.Panel):
         col.prop(props, "focal_35mm")
         if cam:
             col.label(text=f"Lens {cam.data.lens:.1f} mm  ({props.focal_source})")
+            if props.shift_source:
+                col.label(text=f"Lens shift {cam.data.shift_x:+.3f}, {cam.data.shift_y:+.3f}  "
+                               f"({'parallel verticals' if props.shift_source == 'vertical' else props.shift_source})")
         layout.label(text=f"Confidence {props.confidence:.0%}")
 
 
@@ -78,7 +87,7 @@ class PP_PT_position(bpy.types.Panel):
         props = context.scene.perspective_projector
 
         sub = layout.column()
-        sub.enabled = not props.ref_enabled
+        sub.enabled = not (props.ref_enabled or props.size_enabled)
         sub.prop(props, "camera_height")
 
         row = layout.row(align=True)
@@ -86,9 +95,22 @@ class PP_PT_position(bpy.types.Panel):
         if props.origin_set:
             row.operator("perspective_projector.clear_origin", text="", icon="X")
 
-        layout.prop(props, "ref_enabled")
+        layout.prop(props, "size_enabled")
         col = layout.column(align=True)
-        col.enabled = props.ref_enabled
+        col.enabled = props.size_enabled
+        for key, label in (("a", "A"), ("b", "B")):
+            row = col.row(align=True)
+            row.operator("perspective_projector.pick_point", text=f"{label} Start").target = f"SIZE_{label}0"
+            row.operator("perspective_projector.pick_point", text=f"{label} End").target = f"SIZE_{label}1"
+            col.prop(props, f"size_{key}_length")
+        if props.size_enabled:
+            col.label(text=f"Camera height {props.effective_height:.3f}")
+
+        sub = layout.column()
+        sub.enabled = not props.size_enabled
+        sub.prop(props, "ref_enabled")
+        col = layout.column(align=True)
+        col.enabled = props.ref_enabled and not props.size_enabled
         col.prop(props, "ref_axis")
         row = col.row(align=True)
         row.operator("perspective_projector.pick_point", text="Start").target = "REF0"

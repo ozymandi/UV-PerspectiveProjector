@@ -109,6 +109,11 @@ The add-on SHALL let the user drag the endpoints of two pairs of vanishing lines
 - **WHEN** the user makes the two lines of one pair parallel in the image, or makes the two vanishing points incompatible
 - **THEN** the camera keeps its last valid state and the panel shows which pair is invalid
 
+#### Scenario: First calibration cannot be solved
+- **GIVEN** a photo with no camera A yet
+- **WHEN** the user presses Calibrate and the lines cannot be solved (for example a pair is parallel with Focal length on Auto and no EXIF focal)
+- **THEN** camera A is still created as a level placeholder (looking along +Y at the camera height, focal from EXIF or the manual focal field) with the photo as its background, the manual editor shows the photo and the lines through it, and the panel shows which pair is invalid
+
 ### Requirement: Calibration is stored in the file
 Calibration inputs (photo, vanishing lines, axis assignment, height, origin, reference distance) SHALL be saved with the .blend file so the calibration can be reopened and refined after reloading.
 

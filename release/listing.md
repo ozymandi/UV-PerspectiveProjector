@@ -38,17 +38,26 @@ Turn a single photo into a camera-matched 3D set in three clicks, without leavin
 **Also included**
 
 - Swap X/Y, camera height, pick the world origin on the photo, scale from a known distance.
-- Focal length from EXIF (35 mm equivalent) or entered by hand.
+- Focal length from a known size (two ground segments), from EXIF (35 mm equivalent) or entered by hand.
+- Lens shift: renders with parallel verticals stay level, and an optional third line pair solves the shift of cropped or shifted photos.
 - Each step is a single undo step, and the calibration is saved with the .blend file.
 - Works offline: OpenCV is bundled, so nothing has to be installed.
 
 **Limitations**
 
-- Lens distortion is not corrected. The optical centre is assumed at the centre of the image.
+- Lens distortion is not corrected. With converging verticals and only two line pairs, the optical centre is assumed at the centre of the image.
 - Areas revealed by moving the render camera are not filled; paint them after Remap.
 - Faces the projection camera cannot see also receive the photo.
 
 Source code, tests and documentation: https://github.com/ozymandi/UV-PerspectiveProjector
+
+## Version notes (1.1.0)
+
+- Lens shift: when vertical lines are parallel (typical for architectural renders), the camera stays level and the horizon offset becomes vertical shift instead of a tilt.
+- Optional third pair of vanishing lines: with three converging directions the optical centre is solved, so shifted and cropped photos calibrate correctly.
+- Focal length from a known size: mark two ground segments with their real lengths to solve one-point (corridor, street) photos without EXIF.
+- The panel shows where the focal length and the lens shift came from.
+- Fixes: a first calibration that cannot be solved still creates the camera, so the line editor shows the photo; Remap no longer gives the minimum texture size to floors and walls that start behind the projection camera.
 
 ## Version notes (1.0.0)
 

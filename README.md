@@ -15,7 +15,7 @@ No fSpy, no external tools, no Python packages to install.
 
 ## Install
 
-1. Get the zip for your platform, e.g. `perspective_projector-1.0.0-windows_x64.zip`. To build it yourself, run these from the repository root. The OpenCV wheels are not stored in git; the first command downloads the four pinned wheels from PyPI.
+1. Get the zip for your platform, e.g. `perspective_projector-1.1.0-windows_x64.zip`. To build it yourself, run these from the repository root. The OpenCV wheels are not stored in git; the first command downloads the four pinned wheels from PyPI.
    ```
    python tools/fetch_wheels.py
    blender --command extension build --source-dir perspective_projector --output-dir build --split-platforms

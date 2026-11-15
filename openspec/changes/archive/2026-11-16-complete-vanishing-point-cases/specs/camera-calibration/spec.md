@@ -87,8 +87,12 @@ When a third line pair is enabled and all three vanishing points are finite, the
 - **THEN** camera A's shift and focal length are within 2 % of the true values and all three axes align with the photo through camera A
 
 #### Scenario: Third pair degenerate
-- **WHEN** the third pair's vanishing point is at infinity or the three vanishing points form a degenerate triangle
+- **WHEN** the third pair is on a horizontal axis and its vanishing point is at infinity, or the three vanishing points lie on one line
 - **THEN** the panel shows the third pair as invalid and the camera keeps its last valid state
+
+#### Scenario: Third pair on parallel verticals
+- **WHEN** the third pair is on Z and its lines are parallel in the photo
+- **THEN** it is not invalid: the lens-shift rule for parallel verticals applies and camera A stays level
 
 ### Requirement: Solved case is reported
 The panel SHALL state which case produced camera A: focal from vanishing points, from a known size, from EXIF or manual, and whether lens shift was applied.

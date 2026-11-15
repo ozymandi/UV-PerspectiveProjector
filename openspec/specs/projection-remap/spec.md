@@ -41,6 +41,11 @@ The baked image SHALL reproduce what the live projection showed, at a resolution
 - **WHEN** the user sets the remap resolution to 2048 before pressing Remap
 - **THEN** the baked image is 2048 pixels on its longer side
 
+#### Scenario: Surface that reaches behind camera A
+- **GIVEN** a floor or wall whose faces start behind camera A and run into the picture
+- **WHEN** the user presses Remap with the automatic resolution
+- **THEN** the photo pixels it covers are counted from the part of each face in front of camera A and inside the frame, so the resolution matches its size in the photo instead of falling to the 1024 minimum
+
 ### Requirement: Object no longer depends on camera A
 After Remap, the object's material SHALL use the baked image on the regular UV map, the projection modifier SHALL be removed, and the subdivision SHALL be kept.
 

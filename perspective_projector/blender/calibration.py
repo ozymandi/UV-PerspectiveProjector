@@ -44,11 +44,43 @@ def line_pairs_px(props, w, h):
     return [[(pts[0], pts[1]), (pts[2], pts[3])], [(pts[4], pts[5]), (pts[6], pts[7])]]
 
 
+def third_pair_px(props, w, h):
+    v = list(props.lines3)
+    pts = [(v[i] * w, v[i + 1] * h) for i in range(0, 8, 2)]
+    return [(pts[0], pts[1]), (pts[2], pts[3])]
+
+
+def third_axis(props):
+    """The axis not used by pairs 1 and 2 (the third pair always takes it)."""
+    used = {props.pair0_axis, props.pair1_axis}
+    rest = [a for a in solve.AXES if a not in used]
+    return rest[0] if len(rest) == 1 else None
+
+
 # ---------------------------------------------------------------- solving
 
 
 def manual_focal_px(props, w, h):
     return solve.focal_from_35mm(props.focal_35mm, w, h)
+
+
+def known_size_px(props, w, h):
+    """(seg_a, seg_b, len_a, len_b) in pixels for the known-size solve."""
+    seg_a = (_px(props.size_a_p0, w, h), _px(props.size_a_p1, w, h))
+    seg_b = (_px(props.size_b_p0, w, h), _px(props.size_b_p1, w, h))
+    return seg_a, seg_b, props.size_a_length, props.size_b_length
+
+
+def known_size_height(sol, size):
+    """Camera height that gives segment A its known length (scale only; focal already known)."""
+    seg_a, _seg_b, len_a, _len_b = size
+    v = solve.ground_length(sol, *seg_a)
+    if v is None:
+        raise solve.CalibrationError("known-size segment A is above the horizon")
+    n = float(np.linalg.norm(v))
+    if n < 1e-9:
+        raise solve.CalibrationError("known-size segment A has no length on the ground")
+    return len_a / n
 
 
 def solve_state(props):
@@ -59,29 +91,49 @@ def solve_state(props):
     w, h = image_size(img)
     pairs = line_pairs_px(props, w, h)
     axes = (props.pair0_axis, props.pair1_axis)
+    all_pairs, all_axes = list(pairs), list(axes)
+    if props.pair2_enabled:
+        axis3 = third_axis(props)
+        if axis3 is None:
+            raise solve.CalibrationError("pairs 1 and 2 need two different axes before a third pair", 1)
+        all_pairs.append(third_pair_px(props, w, h))
+        all_axes.append(axis3)
+    pp, shift_kind = solve.principal_point_for(all_pairs, all_axes, w, h)
+    size = known_size_px(props, w, h) if props.size_enabled else None
+    size_height = None
     if props.focal_mode == "MANUAL":
-        sol = solve.solve_from_lines(pairs, axes, w, h, focal_px=manual_focal_px(props, w, h))
+        sol = solve.solve_from_lines(pairs, axes, w, h, focal_px=manual_focal_px(props, w, h), pp=pp)
         source = f"manual {props.focal_35mm:g} mm"
     else:
         try:
-            sol = solve.solve_from_lines(pairs, axes, w, h)
+            sol = solve.solve_from_lines(pairs, axes, w, h, pp=pp)
             source = "vanishing points"
         except solve.CalibrationError as exc:
             if "focal" not in str(exc):
                 raise
-            if props.exif_focal_px <= 0:
+            # the lines do not fix the focal length: known size, then EXIF
+            if size is not None:
+                sol, size_height = solve.focal_from_known_size(pairs, axes, w, h, pp, *size)
+                source = "known size"
+            elif props.exif_focal_px > 0:
+                f, source = props.exif_focal_px, props.exif_label or "EXIF"
+                sol = solve.solve_from_lines(pairs, axes, w, h, focal_px=f, pp=pp)
+            else:
                 # no focal in the photo: the user has to enter one (Focal length: Manual)
                 raise solve.CalibrationError(
                     "a vanishing point is at infinity and the photo has no EXIF focal length; "
-                    "set Focal length to Manual", exc.pair)
-            f, source = props.exif_focal_px, props.exif_label or "EXIF"
-            sol = solve.solve_from_lines(pairs, axes, w, h, focal_px=f)
+                    "set Focal length to Manual or use a known size", exc.pair)
+    if size is not None and size_height is None:
+        size_height = known_size_height(sol, size)
+    sol.shift = shift_kind
     if props.swap_xy:
         sol.rotation = solve.swap_xy(sol.rotation)
 
     origin_px = _px(props.origin, w, h) if props.origin_set else None
     height = props.camera_height
-    if props.ref_enabled:
+    if size_height is not None:
+        height = size_height
+    elif props.ref_enabled:
         height = solve.height_from_reference(sol, _px(props.ref_p0, w, h), _px(props.ref_p1, w, h),
                                              props.ref_axis, props.ref_distance, origin_px)
     loc = solve.camera_location(sol, height, origin_px)
@@ -101,6 +153,18 @@ def ensure_camera_a(scene):
     return cam
 
 
+def lens_shift(sol):
+    """Blender (shift_x, shift_y) that puts the optical axis at the solution's principal point.
+
+    Blender shift is in units of the larger frame side; positive shift_x moves the frame right
+    (the principal point appears left of centre), positive shift_y moves it up (point appears lower).
+    """
+    size = float(max(sol.width, sol.height))
+    cx, cy = sol.width / 2.0, sol.height / 2.0
+    px, py = float(sol.principal_point[0]), float(sol.principal_point[1])
+    return (cx - px) / size, (py - cy) / size
+
+
 def apply_solution(scene, sol, loc, img):
     cam = ensure_camera_a(scene)
     data = cam.data
@@ -109,7 +173,7 @@ def apply_solution(scene, sol, loc, img):
     data.sensor_height = SENSOR_MM
     data.sensor_fit = "HORIZONTAL" if sol.width >= sol.height else "VERTICAL"
     data.lens = sol.lens_mm(SENSOR_MM)
-    data.shift_x = data.shift_y = 0.0
+    data.shift_x, data.shift_y = lens_shift(sol)
 
     rot = Matrix([list(r) for r in sol.camera_rotation])
     cam.matrix_world = Matrix.Translation(tuple(loc)) @ rot.to_4x4()
@@ -135,6 +199,24 @@ def apply_solution(scene, sol, loc, img):
     return cam
 
 
+def placeholder_focal_px(props, w, h):
+    """Focal for the placeholder camera: the manual value, else EXIF, else the manual field's default."""
+    if props.focal_mode != "MANUAL" and props.exif_focal_px > 0:
+        return props.exif_focal_px
+    return manual_focal_px(props, w, h)
+
+
+def apply_placeholder(scene):
+    """Level camera A at the camera height, used while the lines cannot be solved."""
+    props = scene.perspective_projector
+    img = props.image
+    if img is None:
+        return None
+    w, h = image_size(img)
+    sol = solve.level_solution(w, h, placeholder_focal_px(props, w, h))
+    return apply_solution(scene, sol, (0.0, 0.0, props.camera_height), img)
+
+
 def reapply(scene):
     """Solve from the stored state and update camera A. Returns True on success."""
     props = scene.perspective_projector
@@ -143,9 +225,14 @@ def reapply(scene):
     except solve.CalibrationError as exc:
         props.status = str(exc)
         props.invalid_pair = exc.pair if exc.pair is not None else -1
+        if camera_a(scene) is None:
+            # no earlier valid camera to keep: create a placeholder so the editor can show
+            # the photo and the lines through camera A
+            apply_placeholder(scene)
         return False
     props.invalid_pair = -1
     props.focal_source = source
+    props.shift_source = sol.shift
     props.effective_height = float(height)
     apply_solution(scene, sol, loc, props.image)
     return True

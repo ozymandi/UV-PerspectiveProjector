@@ -9,6 +9,8 @@ DEFAULT_LINES = (
     0.10, 0.62, 0.45, 0.55,  0.10, 0.85, 0.45, 0.70,   # pair 0
     0.55, 0.55, 0.90, 0.62,  0.55, 0.70, 0.90, 0.85,   # pair 1
 )
+# optional third pair (stored separately so 1.0.0 files keep their 16 values)
+DEFAULT_LINES3 = (0.30, 0.15, 0.30, 0.45,  0.70, 0.15, 0.70, 0.45)
 
 
 def _plane_distance(self, context):
@@ -30,6 +32,11 @@ class PP_Calibration(bpy.types.PropertyGroup):
     lines: bpy.props.FloatVectorProperty(size=16, default=DEFAULT_LINES, update=_reapply)
     pair0_axis: bpy.props.EnumProperty(items=AXIS_ITEMS, default="X", name="Pair 1 axis", update=_reapply)
     pair1_axis: bpy.props.EnumProperty(items=AXIS_ITEMS, default="Y", name="Pair 2 axis", update=_reapply)
+    lines3: bpy.props.FloatVectorProperty(size=8, default=DEFAULT_LINES3, update=_reapply)
+    pair2_enabled: bpy.props.BoolProperty(
+        name="Third pair", default=False, update=_reapply,
+        description="A third pair of lines on the remaining axis; with three converging pairs "
+                    "the lens shift is solved from them")
     calibrated: bpy.props.BoolProperty(default=False)
     swap_xy: bpy.props.BoolProperty(default=False, name="Swap X/Y", update=_reapply)
 
@@ -44,6 +51,7 @@ class PP_Calibration(bpy.types.PropertyGroup):
     exif_focal_px: bpy.props.FloatProperty(default=0.0)
     exif_label: bpy.props.StringProperty(default="")
     focal_source: bpy.props.StringProperty(default="")
+    shift_source: bpy.props.StringProperty(default="")  # "", "vertical" or "three vanishing points"
 
     # position and scale
     camera_height: bpy.props.FloatProperty(name="Camera height", default=1.6, min=0.001, unit="LENGTH",
@@ -56,6 +64,20 @@ class PP_Calibration(bpy.types.PropertyGroup):
     ref_p1: bpy.props.FloatVectorProperty(size=2, default=(0.6, 0.8), update=_reapply)
     ref_distance: bpy.props.FloatProperty(name="Distance", default=1.0, min=0.0001, unit="LENGTH", update=_reapply)
     effective_height: bpy.props.FloatProperty(default=0.0)
+
+    # known size: two ground segments, one along each horizontal axis
+    size_enabled: bpy.props.BoolProperty(
+        name="Use known size", default=False, update=_reapply,
+        description="Solve the focal length (when the lines cannot) and the scale from two ground "
+                    "segments of known length, one along each horizontal axis")
+    size_a_p0: bpy.props.FloatVectorProperty(size=2, default=(0.40, 0.80), update=_reapply)
+    size_a_p1: bpy.props.FloatVectorProperty(size=2, default=(0.45, 0.65), update=_reapply)
+    size_a_length: bpy.props.FloatProperty(name="Length A", default=1.0, min=0.0001, unit="LENGTH",
+                                           update=_reapply)
+    size_b_p0: bpy.props.FloatVectorProperty(size=2, default=(0.35, 0.85), update=_reapply)
+    size_b_p1: bpy.props.FloatVectorProperty(size=2, default=(0.60, 0.85), update=_reapply)
+    size_b_length: bpy.props.FloatProperty(name="Length B", default=1.0, min=0.0001, unit="LENGTH",
+                                           update=_reapply)
 
     # reporting
     confidence: bpy.props.FloatProperty(default=0.0)

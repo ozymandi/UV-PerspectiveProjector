@@ -43,6 +43,7 @@ class Solution:
     width: int
     height: int
     focal_source: str = "vanishing points"  # or "given"
+    shift: str = ""  # "", "vertical" (parallel verticals) or "three vanishing points"
 
     @property
     def camera_rotation(self) -> np.ndarray:
@@ -200,7 +201,86 @@ def solve_from_vps(vp1, vp2, axes, width, height, focal_px=None, pp=None) -> Sol
     return Solution(f, m, pp, int(width), int(height), source)
 
 
-def solve_from_lines(pairs, axes, width, height, focal_px=None) -> Solution:
+def level_solution(width, height, focal_px) -> Solution:
+    """Placeholder camera for when the lines cannot be solved yet: level, looking along +Y, no roll.
+
+    World X points right in the image, world Z up, world Y into the picture.
+    """
+    f = float(focal_px)
+    if f <= 0:
+        raise CalibrationError("focal length must be positive")
+    m = np.array([[1.0, 0.0, 0.0],
+                  [0.0, 0.0, 1.0],
+                  [0.0, -1.0, 0.0]])
+    pp = np.array([width / 2.0, height / 2.0])
+    return Solution(f, m, pp, int(width), int(height), "placeholder")
+
+
+def _point(vp):
+    return np.array(vp[:2], dtype=float) / vp[2]
+
+
+def horizon_principal_point(horizontal_vps, vertical_vp, width, height, pair: int | None = None) -> np.ndarray:
+    """Principal point of a level camera with parallel verticals (vertical lens shift).
+
+    The optical axis is horizontal, so the principal point lies on the horizon. Horizontal
+    shift is assumed zero, so it is where the horizon crosses the image's centre column
+    (lens shift moves along the sensor's own y axis, also when the camera has roll).
+    """
+    c = np.array([width / 2.0, height / 2.0])
+    vdir = _normalize(np.asarray(vertical_vp[:2], dtype=float))  # image direction of the verticals
+    finite = [vp for vp in horizontal_vps if vp[2] != 0]
+    if not finite:
+        raise CalibrationError("no finite horizontal vanishing point to place the horizon", pair)
+    p0 = _point(finite[0])
+    if len(finite) >= 2:
+        hdir = _point(finite[1]) - p0
+    else:
+        hdir = np.array([-vdir[1], vdir[0]])  # horizon is perpendicular to the verticals
+    d = np.array([0.0, 1.0])  # along the centre column
+    a = np.column_stack([d, -hdir])
+    if abs(np.linalg.det(a)) < 1e-9 * max(1.0, float(np.linalg.norm(hdir))):
+        raise CalibrationError("the horizon is parallel to the vertical lines", pair)
+    t, _ = np.linalg.solve(a, p0 - c)
+    return c + t * d
+
+
+def orthocentre(a, b, c) -> np.ndarray:
+    """Orthocentre of the triangle of three finite image points."""
+    a, b, c = (np.asarray(p, dtype=float) for p in (a, b, c))
+    m = np.array([b - c, a - c])
+    rhs = np.array([np.dot(a, b - c), np.dot(b, a - c)])
+    if abs(np.linalg.det(m)) < 1e-6 * float(np.linalg.norm(b - c) * np.linalg.norm(a - c) + 1e-12):
+        raise CalibrationError("the three vanishing points are on one line", 2)
+    return np.linalg.solve(m, rhs)
+
+
+def principal_point_for(pairs, axes, width, height):
+    """Principal point and shift kind for 2 or 3 line pairs (pixels).
+
+    * Z pair with parallel lines -> level camera, principal point on the horizon (vertical shift).
+    * three pairs with three finite VPs -> orthocentre of the VP triangle (horizontal and vertical shift).
+    * otherwise the image centre.
+    """
+    diag = float(np.hypot(width, height))
+    vps = [vp_from_lines(p[0], p[1], diag, pair=i) for i, p in enumerate(pairs)]
+    z = [i for i, a in enumerate(axes) if a == "Z"]
+    if z and vps[z[0]][2] == 0:
+        horizontal = [vp for i, vp in enumerate(vps) if i != z[0]]
+        return horizon_principal_point(horizontal, vps[z[0]], width, height, pair=z[0]), "vertical"
+    if len(vps) == 3:
+        if vps[2][2] == 0:
+            raise CalibrationError("the third pair's lines are parallel; its vanishing point is at infinity", 2)
+        if any(vp[2] == 0 for vp in vps[:2]):
+            raise CalibrationError("three vanishing points need all three pairs to converge", 2)
+        pp = orthocentre(*(_point(vp) for vp in vps))
+        if not (np.all(np.isfinite(pp)) and np.linalg.norm(pp - [width / 2.0, height / 2.0]) < diag):
+            raise CalibrationError("the third pair gives a principal point far outside the photo", 2)
+        return pp, "three vanishing points"
+    return np.array([width / 2.0, height / 2.0]), ""
+
+
+def solve_from_lines(pairs, axes, width, height, focal_px=None, pp=None) -> Solution:
     """Solve from two pairs of line segments (manual editor input).
 
     ``pairs`` = [ [lineA, lineB], [lineC, lineD] ], each line ((x0, y0), (x1, y1)) in pixels.
@@ -213,7 +293,7 @@ def solve_from_lines(pairs, axes, width, height, focal_px=None) -> Solution:
             if vp[2] == 0:
                 raise CalibrationError("lines of this pair are parallel; enter the focal length", i)
     try:
-        return solve_from_vps(vps[0], vps[1], axes, width, height, focal_px)
+        return solve_from_vps(vps[0], vps[1], axes, width, height, focal_px, pp=pp)
     except CalibrationError as exc:
         if exc.pair is None:
             exc.pair = 1
@@ -312,6 +392,72 @@ def height_from_reference(sol: Solution, p0, p1, axis: str, distance: float, ori
     if measured < 1e-9:
         raise CalibrationError("reference points coincide")
     return distance / measured
+
+
+KNOWN_SIZE_F35_RANGE = (8.0, 300.0)  # 35 mm-equivalent focal lengths searched by the known-size solve
+
+
+def ground_length(sol: Solution, p0, p1, camera_height: float = 1.0):
+    """Ground-plane vector between two image points for a camera at ``camera_height``, or None."""
+    a = ground_hit(sol, p0, camera_height)
+    b = ground_hit(sol, p1, camera_height)
+    if a is None or b is None:
+        return None
+    return b - a
+
+
+def focal_from_known_size(pairs, axes, width, height, pp, seg_a, seg_b, len_a: float, len_b: float):
+    """Focal length and camera height from two ground segments of known length.
+
+    ``seg_a`` / ``seg_b`` are ((u0, v0), (u1, v1)) on the ground, along different horizontal
+    directions. The depth-wise length scales with the focal length while the cross-wise one
+    hardly does, so the ratio of their measured lengths fixes the focal length (bisection),
+    and their absolute length fixes the camera height. Returns (Solution, camera_height).
+    """
+    if len_a <= 0 or len_b <= 0:
+        raise CalibrationError("known lengths must be positive")
+    target = float(np.log(len_a / len_b))
+    diag = float(np.hypot(width, height))
+
+    def measure(f):
+        sol = solve_from_lines(pairs, axes, width, height, focal_px=f, pp=pp)
+        va = ground_length(sol, *seg_a)
+        vb = ground_length(sol, *seg_b)
+        if va is None or vb is None:
+            raise CalibrationError("a known-size segment is above the horizon")
+        na, nb = float(np.linalg.norm(va)), float(np.linalg.norm(vb))
+        if na < 1e-9 or nb < 1e-9:
+            raise CalibrationError("a known-size segment has no length on the ground")
+        if abs(np.dot(va, vb)) / (na * nb) > np.cos(np.radians(20.0)):
+            raise CalibrationError("the two known-size segments run in the same direction; "
+                                   "mark one along each horizontal axis")
+        return sol, na, nb
+
+    fs = np.geomspace(*KNOWN_SIZE_F35_RANGE, 48) * diag / FILM_DIAGONAL_MM
+    values = []
+    for f in fs:
+        _, na, nb = measure(f)
+        values.append(np.log(na / nb) - target)
+    lo = hi = None
+    for i in range(len(fs) - 1):
+        if values[i] == 0 or values[i] * values[i + 1] < 0:
+            lo, hi, g_lo = fs[i], fs[i + 1], values[i]
+            break
+    if lo is None:
+        raise CalibrationError("the known sizes do not match any focal length between "
+                               f"{KNOWN_SIZE_F35_RANGE[0]:g} and {KNOWN_SIZE_F35_RANGE[1]:g} mm")
+    for _ in range(60):
+        mid = np.sqrt(lo * hi)
+        _, na, nb = measure(mid)
+        g = np.log(na / nb) - target
+        if (g < 0) == (g_lo < 0):
+            lo, g_lo = mid, g
+        else:
+            hi = mid
+    f = float(np.sqrt(lo * hi))
+    sol, na, _ = measure(f)
+    sol.focal_source = "known size"
+    return sol, len_a / na
 
 
 def project_point(sol: Solution, cam_location, point) -> np.ndarray:

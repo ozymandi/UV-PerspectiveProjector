@@ -201,3 +201,16 @@ def test_reference_distance_recovers_height(axis, p0, p1, dist):
     assert h == pytest.approx(1.75, rel=1e-4)
     loc = solve.camera_location(sol, h, origin_px)
     assert np.allclose(loc, cam.location, atol=1e-3)
+
+
+def test_level_solution_is_a_level_camera_looking_along_y():
+    sol = solve.level_solution(3000, 4000, 2000)
+    assert sol.focal_px == 2000
+    assert sol.focal_source == "placeholder"
+    assert np.linalg.det(sol.rotation) == pytest.approx(1.0)
+    # camera space: x right, y up, looking down -Z
+    assert np.allclose(sol.rotation[:, 0], [1, 0, 0])   # world X -> image right
+    assert np.allclose(sol.rotation[:, 1], [0, 0, -1])  # world Y -> straight ahead
+    assert np.allclose(sol.rotation[:, 2], [0, 1, 0])   # world Z -> up
+    with pytest.raises(solve.CalibrationError):
+        solve.level_solution(3000, 4000, 0)

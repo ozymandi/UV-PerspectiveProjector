@@ -35,15 +35,27 @@ No fSpy, no external tools, no Python packages to install.
 - If detection is confident, you are done. If not (organic scenes, few straight edges), the line editor opens with the best guess already placed.
 - **Edit Lines**: drag the eight round handles over the photo. There are two pairs of lines, and each pair runs along one scene axis (red X, green Y, blue Z). Camera A updates live while you drag. An invalid pair turns orange, and the camera keeps its last valid state.
 - **Pair 1 / Pair 2**: which axis each pair follows.
+- **Third pair**: adds four more handles for the remaining axis. When all three pairs converge (three finite vanishing points), the lens shift (principal point) is solved from them instead of being assumed at the centre.
 - **Swap X/Y**: turns the scene 90° about Z without changing what camera A sees.
 - **Focal length**:
-  - *Auto* takes it from the vanishing points, or from EXIF when one vanishing point is at infinity.
-  - *Manual* uses the 35 mm-equivalent value you enter. Use it for one-point perspective photos without EXIF.
+  - *Auto* takes it from the vanishing points. When the lines do not fix it (one-point perspective), it uses the known size if set (see below), then EXIF.
+  - *Manual* always uses the 35 mm-equivalent value you enter.
+- **Lens shift**: when the vertical lines are parallel in the photo (a Z pair that does not converge), camera A stays level and the horizon's offset from the centre becomes vertical lens shift instead of a tilt. This is how architectural renders are usually made. The panel shows the shift and where it came from.
+
+Which layout is which:
+
+| What you see in the photo | What to set |
+|---|---|
+| Two horizontal directions converge, verticals converge | Nothing extra |
+| Two horizontal directions converge, verticals parallel | A Z pair with parallel lines: lens shift is applied |
+| Only one horizontal direction converges (corridor, street) | **Use known size** (or EXIF / Manual focal) |
+| All three directions converge, photo was shifted or cropped | **Third pair** |
 
 **Position and Scale** (optional):
 
 - **Camera height**: 1.6 m by default; changing it scales the scene, and the view stays the same.
 - **Pick Origin**: click a ground point on the photo to make it the world origin.
+- **Use known size**: pick **A Start / A End** on the ground along one horizontal axis and **B Start / B End** along the other, and type their real lengths (for example the length and the depth of a bench, or a tile's two sides). In a one-point photo this solves the focal length; in every case it sets the scale. It replaces the camera height and the reference distance while it is on.
 - **Use reference distance**: pick two points along an axis and type their real distance. X/Y points lie on the ground; for Z, the start is on the ground and the end is straight above it.
 
 ### 2. Project
@@ -72,7 +84,7 @@ Calibrate, Project and Remap are each a single undo step.
 ## Known limitations
 
 - **Lens distortion is not corrected.** Strong wide-angle distortion bends straight lines and lowers accuracy.
-- **The principal point is assumed at the image centre.** Cropped photos calibrate as if uncropped.
+- **The principal point is at the image centre unless the photo says otherwise.** Parallel verticals give vertical shift, and a third converging pair gives both shifts. A cropped photo with converging verticals and only two pairs still calibrates as if uncropped.
 - **No occlusion or stretch masks.** Projection and Remap also put the photo on faces camera A cannot see (for example the back of a box) and stretch it on faces seen edge-on. Clean these up by hand.
 - **Areas revealed when camera B moves are not filled.** Paint them in Texture Paint or an image editor after Remap.
 - **UV Project works per vertex.** On large surfaces that run close to camera A (a long floor), subdivision is capped at level 6, and faces nearest the camera can still bend slightly. Split such surfaces into smaller pieces before projecting.

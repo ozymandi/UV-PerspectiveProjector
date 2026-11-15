@@ -17,9 +17,10 @@ class SynthCamera:
     """Camera at ``location`` (world), yaw about Z then pitch, roll about view axis."""
 
     def __init__(self, width=4000, height=3000, focal_px=3000.0, yaw_deg=-35.0, pitch_deg=-12.0,
-                 roll_deg=0.0, location=(0.0, -8.0, 1.6)):
+                 roll_deg=0.0, location=(0.0, -8.0, 1.6), pp=None):
         self.width, self.height, self.f = width, height, focal_px
-        self.pp = np.array([width / 2.0, height / 2.0])
+        # principal point in pixels; off-centre = lens shift
+        self.pp = np.array([width / 2.0, height / 2.0]) if pp is None else np.asarray(pp, dtype=float)
         # camera-to-world: start looking along +Y world (camera -Z = world +Y), Z up
         base = np.column_stack([[1, 0, 0], [0, 0, 1], [0, -1, 0]]).astype(float)
         c2w = rot_z(np.radians(yaw_deg)) @ base @ rot_x(np.radians(pitch_deg)) @ _rot_view(np.radians(roll_deg))

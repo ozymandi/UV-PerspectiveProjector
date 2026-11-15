@@ -116,6 +116,10 @@ class PP_OT_pick_point(bpy.types.Operator):
         ("ORIGIN", "Origin", "World origin on the ground"),
         ("REF0", "Reference start", "First reference point"),
         ("REF1", "Reference end", "Second reference point"),
+        ("SIZE_A0", "Size A start", "Start of known-size segment A on the ground"),
+        ("SIZE_A1", "Size A end", "End of known-size segment A on the ground"),
+        ("SIZE_B0", "Size B start", "Start of known-size segment B on the ground"),
+        ("SIZE_B1", "Size B end", "End of known-size segment B on the ground"),
     ])
 
     @classmethod
@@ -167,8 +171,11 @@ class PP_OT_pick_point(bpy.types.Operator):
                 self.report({"ERROR"}, "The origin must be on the ground (below the horizon)")
         elif self.target == "REF0":
             props.ref_p0 = uv
-        else:
+        elif self.target == "REF1":
             props.ref_p1 = uv
+        else:
+            setattr(props, {"SIZE_A0": "size_a_p0", "SIZE_A1": "size_a_p1",
+                            "SIZE_B0": "size_b_p0", "SIZE_B1": "size_b_p1"}[self.target], uv)
 
 
 class PP_OT_clear_origin(bpy.types.Operator):

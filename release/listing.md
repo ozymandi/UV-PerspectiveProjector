@@ -33,6 +33,7 @@ Turn a single photo into a camera-matched 3D set in three clicks, without leavin
 
 - Remap bakes the projection into a regular UV map and texture, then removes the UV Project modifier.
 - The object no longer depends on the projection camera: move it, bend it or paint on it.
+- Surfaces the projection camera never saw (back faces, faces hidden behind other objects) get a flat Hidden colour instead of stretched photo; plug your own colour or texture into the Hidden node.
 - Textures are saved next to your .blend file, or packed into it if the file has never been saved.
 
 **Also included**
@@ -46,10 +47,16 @@ Turn a single photo into a camera-matched 3D set in three clicks, without leavin
 **Limitations**
 
 - Lens distortion is not corrected. With converging verticals and only two line pairs, the optical centre is assumed at the centre of the image.
-- Areas revealed by moving the render camera are not filled; paint them after Remap.
-- Faces the projection camera cannot see also receive the photo.
+- Areas the projection camera could not see show a flat colour after Remap, not real content; paint them or plug in a texture.
+- Before Remap, the live projection still puts the photo on faces the projection camera cannot see.
 
 Source code, tests and documentation: https://github.com/ozymandi/UV-PerspectiveProjector
+
+## Version notes (1.2.0)
+
+- Visibility mask in Remap: back faces and surfaces hidden behind other objects no longer get stretched or wrong photo. They show a Hidden colour (by default the median of the visible part) that you can replace with any colour or texture.
+- Grazing threshold (degrees, off by default): also treat surfaces seen almost edge-on as hidden, for cleaner fly-throughs over long floors and walls.
+- Your own lights do not affect the mask; the view through the projection camera does not change.
 
 ## Version notes (1.1.0)
 

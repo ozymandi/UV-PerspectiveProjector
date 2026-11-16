@@ -1,3 +1,4 @@
+import os
 import time
 
 import numpy as np
@@ -13,6 +14,11 @@ SCENES = [
     dict(yaw_deg=-50, pitch_deg=-8, focal_px=3600, width=3000, height=4000),
     dict(yaw_deg=-40, pitch_deg=-30, focal_px=1500, width=1920, height=1080, location=(-4.0, -1.0, 3.0)),
 ]
+
+
+# Detection must finish within 10 s on a developer machine. Shared CI runners (and busy
+# machines) are slower, so the limit is scaled by PP_TIME_FACTOR (CI sets 3).
+TIME_LIMIT_S = 10.0 * float(os.environ.get("PP_TIME_FACTOR", "1"))
 
 
 def _true_vps(cam):
@@ -49,7 +55,7 @@ def test_detect_recovers_camera(params):
     for i in range(3):
         assert abs(np.dot(sol.rotation[:, i], cam.M[:, i])) > np.cos(np.radians(1.0)), solve.AXES[i]
     assert det.confidence > 0.5
-    assert elapsed < 10.0
+    assert elapsed < TIME_LIMIT_S, f"detection took {elapsed:.1f} s (limit {TIME_LIMIT_S:.0f} s)"
 
 
 def test_noise_image_is_not_confident():

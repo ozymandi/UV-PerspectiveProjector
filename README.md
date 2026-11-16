@@ -76,8 +76,10 @@ Which layout is which:
   - otherwise a Smart UV unwrap named `RemapUV` is created.
 - The material switches to the baked texture, the UV Project modifier is removed, and the subdivision stays. The object no longer depends on camera A.
 - **Remap resolution**: 0 (auto) picks a power of two between 1024 and 8192 from how many photo pixels the object covers. Set a number to override it.
-- Textures are saved to `textures/<object>_remap.png` next to the .blend file. If the file has never been saved, they are packed into it.
-- The render engine and bake settings are restored afterwards.
+- **Visibility mask**: Remap also works out which parts of each object camera A really sees. Faces turned away from camera A and faces hidden behind other objects do not get the photo. They show the material's **Hidden** colour instead: a flat colour taken from the visible part. Replace the `Hidden` node with any colour or texture (link it into the mix's A input). The view through camera A does not change.
+- **Grazing threshold**: 0 by default. Raise it (in degrees) to also treat surfaces seen almost edge-on from camera A as hidden, which removes stretched photo on long floors and walls when camera B flies over them. Those surfaces then show the Hidden colour through camera A too.
+- Textures are saved to `textures/<object>_remap.png` and the masks to `textures/<object>_vis.png` next to the .blend file. If the file has never been saved, they are packed into it.
+- The render engine, bake settings and lights are restored afterwards; your own lights do not affect the mask.
 
 Calibrate, Project and Remap are each a single undo step.
 
@@ -85,8 +87,8 @@ Calibrate, Project and Remap are each a single undo step.
 
 - **Lens distortion is not corrected.** Strong wide-angle distortion bends straight lines and lowers accuracy.
 - **The principal point is at the image centre unless the photo says otherwise.** Parallel verticals give vertical shift, and a third converging pair gives both shifts. A cropped photo with converging verticals and only two pairs still calibrates as if uncropped.
-- **No occlusion or stretch masks.** Projection and Remap also put the photo on faces camera A cannot see (for example the back of a box) and stretch it on faces seen edge-on. Clean these up by hand.
-- **Areas revealed when camera B moves are not filled.** Paint them in Texture Paint or an image editor after Remap.
+- **The live projection is not masked.** Before Remap, the photo still lands on faces camera A cannot see; Remap fixes that with the visibility mask.
+- **Hidden areas are not filled with real content.** After Remap they show the flat Hidden colour; paint them or plug a texture into the `Hidden` node.
 - **UV Project works per vertex.** On large surfaces that run close to camera A (a long floor), subdivision is capped at level 6, and faces nearest the camera can still bend slightly. Split such surfaces into smaller pieces before projecting.
 
 ## Development

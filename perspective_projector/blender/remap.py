@@ -14,6 +14,10 @@ from . import projection
 REMAP_UV = "RemapUV"
 MIN_RES, MAX_RES = 1024, 8192
 BAKE_MARGIN = 16
+SHADOW_SAMPLES = 4
+HIDDEN_NODE = "Hidden"  # name and label of the colour node feeding hidden areas
+MASK_NODE = "PP_VisMask"
+HELPER_LIGHT = "PP_CamA_Light"
 
 
 def is_projected(obj):
@@ -117,7 +121,8 @@ class _RenderState:
         bake = s.render.bake
         self.engine = s.render.engine
         self.samples = s.cycles.samples if hasattr(s, "cycles") else None
-        self.bake = {k: getattr(bake, k) for k in ("margin", "use_clear", "target", "use_selected_to_active")}
+        self.bake = {k: getattr(bake, k) for k in ("margin", "use_clear", "target", "use_selected_to_active",
+                                                   "use_pass_direct", "use_pass_indirect", "use_pass_color")}
         self.bake_type = s.cycles.bake_type if hasattr(s, "cycles") else None
         s.render.engine = "CYCLES"
         s.cycles.samples = 1
@@ -141,8 +146,54 @@ class _RenderState:
         return False
 
 
-def _bake(obj, img, mat, node_tree_edit=None):
-    """Bake Emit for ``obj`` into ``img`` through an active image node in ``mat``."""
+class _CameraLight:
+    """While active: a hard point light at camera A is the only light that renders, and the
+    frame-filling projection card does not cast shadows. Everything is restored on exit."""
+
+    def __init__(self, scene, cam, target, alone=False):
+        self.scene, self.cam = scene, cam
+        self.target = target  # the object being baked: never hidden
+        self.alone = alone  # True: every other object is hidden too (unoccluded reference pass)
+        self.hidden = []
+        self.light = None
+
+    def _hide(self, o):
+        if o == self.target:
+            return False
+        if o.type == "LIGHT" or o.get(projection.ROLE) == projection.ROLE_PLANE:
+            return True
+        return self.alone and o.type in {"MESH", "CURVE", "SURFACE", "META", "FONT"}
+
+    def __enter__(self):
+        for o in self.scene.objects:
+            if self._hide(o) and not o.hide_render:
+                o.hide_render = True
+                self.hidden.append(o.name)
+        data = bpy.data.lights.new(HELPER_LIGHT, "POINT")
+        data.energy = 1.0e6  # only "lit or not" matters; keep far surfaces well above zero
+        data.shadow_soft_size = 0.0
+        self.light = bpy.data.objects.new(HELPER_LIGHT, data)
+        self.scene.collection.objects.link(self.light)
+        self.light.location = self.cam.matrix_world.translation
+        bpy.context.view_layer.update()
+        return self
+
+    def __exit__(self, *exc):
+        if self.light is not None:
+            data = self.light.data
+            bpy.data.objects.remove(self.light, do_unlink=True)
+            bpy.data.lights.remove(data)
+            self.light = None
+        for name in self.hidden:
+            o = self.scene.objects.get(name)
+            if o is not None:
+                o.hide_render = False
+        self.hidden = []
+        return False
+
+
+def _bake(obj, img, mat, node_tree_edit=None, bake_type="EMIT"):
+    """Bake ``bake_type`` for ``obj`` into ``img`` through an active image node in ``mat``."""
     nt = mat.node_tree
     node = nt.nodes.new("ShaderNodeTexImage")
     node.image = img
@@ -158,7 +209,7 @@ def _bake(obj, img, mat, node_tree_edit=None):
             o.select_set(False)
         obj.select_set(True)
         view_layer.objects.active = obj
-        bpy.ops.object.bake(type="EMIT")
+        bpy.ops.object.bake(type=bake_type)
     finally:
         if restore:
             restore()
@@ -216,37 +267,157 @@ def _alpha_as_emission(nt):
     return restore
 
 
-def bake_object(scene, obj, resolution):
-    """Bake the projection of ``obj`` into a new RGBA image. Returns the image."""
+def _white_diffuse(nt):
+    """Bake pass 3 surface: plain white diffuse, so the direct-light bake measures only light
+    from camera A's position (zero where another object blocks it or the face looks away)."""
+    out = next(n for n in nt.nodes if n.type == "OUTPUT_MATERIAL")
+    surf = out.inputs["Surface"]
+    old = surf.links[0].from_socket if surf.is_linked else None
+    diffuse = nt.nodes.new("ShaderNodeBsdfDiffuse")
+    diffuse.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+    nt.links.new(diffuse.outputs[0], surf)
+
+    def restore():
+        nt.nodes.remove(diffuse)
+        if old is not None:
+            nt.links.new(old, surf)
+    return restore
+
+
+def _facing_as_emission(cam_pos, grazing_deg):
+    """Bake pass 4: emit how squarely the surface faces camera A.
+
+    0 for faces turned away, 1 for faces seen at more than ``grazing_deg`` (smooth step
+    between ``grazing_deg`` and 1.5 x that angle); with 0 degrees it is a hard front/back test.
+    """
+
+    def edit(nt):
+        restore_mix = _emission_only(nt)
+        emission = next(n for n in nt.nodes if n.type == "EMISSION")
+        col = emission.inputs["Color"]
+        old_link = col.links[0].from_socket if col.is_linked else None
+        if col.is_linked:
+            nt.links.remove(col.links[0])
+        added = []
+
+        def new(kind, **kw):
+            n = nt.nodes.new(kind)
+            for k, v in kw.items():
+                setattr(n, k, v)
+            added.append(n)
+            return n
+
+        geo = new("ShaderNodeNewGeometry")
+        cam = new("ShaderNodeCombineXYZ")
+        for i in range(3):
+            cam.inputs[i].default_value = float(cam_pos[i])
+        to_cam = new("ShaderNodeVectorMath", operation="SUBTRACT")
+        nt.links.new(cam.outputs[0], to_cam.inputs[0])
+        nt.links.new(geo.outputs["Position"], to_cam.inputs[1])
+        norm = new("ShaderNodeVectorMath", operation="NORMALIZE")
+        nt.links.new(to_cam.outputs[0], norm.inputs[0])
+        dot = new("ShaderNodeVectorMath", operation="DOT_PRODUCT")
+        nt.links.new(norm.outputs[0], dot.inputs[0])
+        nt.links.new(geo.outputs["True Normal"], dot.inputs[1])
+        lo = math.sin(math.radians(grazing_deg))
+        hi = max(math.sin(math.radians(min(grazing_deg * 1.5, 89.0))), lo + 1e-3)
+        step = new("ShaderNodeMapRange", interpolation_type="SMOOTHSTEP", clamp=True)
+        step.inputs["From Min"].default_value = lo
+        step.inputs["From Max"].default_value = hi
+        nt.links.new(dot.outputs["Value"], step.inputs["Value"])
+        nt.links.new(step.outputs["Result"], col)
+
+        def restore():
+            for n in added:
+                nt.nodes.remove(n)
+            if old_link is not None:
+                nt.links.new(old_link, col)
+            restore_mix()
+        return restore
+    return edit
+
+
+def _grey(img, n):
+    px = np.empty(n * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    return px[0::4].copy()
+
+
+def hidden_colour(rgba, mask):
+    """Median colour of the visible, in-frame texels (mid grey when there are none)."""
+    rgb = rgba.reshape(-1, 4)
+    seen = (mask > 0.5) & (rgb[:, 3] > 0.5)
+    if not seen.any():
+        return (0.5, 0.5, 0.5)
+    return tuple(float(c) for c in np.median(rgb[seen, :3], axis=0))
+
+
+def bake_object(scene, obj, resolution, cam=None, grazing_deg=0.0):
+    """Bake the projection of ``obj``. Returns (RGBA image, visibility mask image or None, hidden colour).
+
+    Passes: photo colour, in-frame alpha, then (with camera A) a shadow pass from a light at
+    camera A and a facing pass; the mask is their product.
+    """
     mat = obj.data.materials[0]
     name = f"{obj.name}_remap"
     img = bpy.data.images.new(name, resolution, resolution, alpha=True, float_buffer=False)
     img["pp_bake"] = True
-    alpha_img = bpy.data.images.new(name + "_alpha_tmp", resolution, resolution, alpha=False, float_buffer=True)
-    alpha_img["pp_bake"] = True
+    tmp = [bpy.data.images.new(name + suffix, resolution, resolution, alpha=False, float_buffer=True)
+           for suffix in ("_alpha_tmp", "_shadow_tmp", "_free_tmp", "_facing_tmp")]
+    alpha_img, shadow_img, free_img, facing_img = tmp
+    for t in tmp:
+        t["pp_bake"] = True
+    mask_img = None
+    n = resolution * resolution
     try:
         with _RenderState(scene):
             _bake(obj, img, mat, _emission_only)
             _bake(obj, alpha_img, mat, _alpha_as_emission)
-        n = resolution * resolution
+            if cam is not None:
+                # direct light from a point light at camera A, once with the scene and once with the
+                # object alone; seen where it gets at least half of its unoccluded light. The ratio
+                # ignores light leaking through semi-transparent occluders and the light's falloff.
+                # (The SHADOW bake type returns a constant in recent Blender versions.)
+                scene.cycles.samples = SHADOW_SAMPLES
+                bake = scene.render.bake
+                bake.use_pass_direct, bake.use_pass_indirect, bake.use_pass_color = True, False, False
+                with _CameraLight(scene, cam, obj):
+                    _bake(obj, shadow_img, mat, _white_diffuse, bake_type="DIFFUSE")
+                with _CameraLight(scene, cam, obj, alone=True):
+                    _bake(obj, free_img, mat, _white_diffuse, bake_type="DIFFUSE")
+                scene.cycles.samples = 1
+                _bake(obj, facing_img, mat, _facing_as_emission(cam.matrix_world.translation, grazing_deg))
         rgba = np.empty(n * 4, dtype=np.float32)
         img.pixels.foreach_get(rgba)
-        a = np.empty(n * 4, dtype=np.float32)
-        alpha_img.pixels.foreach_get(a)
-        rgba[3::4] = np.clip(a[0::4], 0.0, 1.0)
+        rgba[3::4] = np.clip(_grey(alpha_img, n), 0.0, 1.0)
         img.pixels.foreach_set(rgba)
         img.update()
+        if cam is not None:
+            lit, free = _grey(shadow_img, n), _grey(free_img, n)
+            seen = (free > max(float(free.max()) * 1e-6, 1e-12)) & (lit > 0.5 * free)
+            mask = seen.astype(np.float32) * np.clip(_grey(facing_img, n), 0.0, 1.0)
+            mask_img = bpy.data.images.new(f"{obj.name}_vis", resolution, resolution, alpha=False)
+            mask_img.colorspace_settings.name = "Non-Color"
+            grey = np.empty(n * 4, dtype=np.float32)
+            grey[0::4] = grey[1::4] = grey[2::4] = mask
+            grey[3::4] = 1.0
+            mask_img.pixels.foreach_set(grey)
+            mask_img.update()
+            colour = hidden_colour(rgba, mask)
+        else:
+            colour = hidden_colour(rgba, np.ones(n, dtype=np.float32))
     finally:
-        bpy.data.images.remove(alpha_img)
+        for t in tmp:
+            bpy.data.images.remove(t)
     del img["pp_bake"]
-    return img
+    return img, mask_img, colour
 
 
-def save_image(img, obj_name):
+def save_image(img, obj_name, suffix="_remap"):
     if bpy.data.is_saved:
         folder = bpy.path.abspath("//textures")
         os.makedirs(folder, exist_ok=True)
-        path = os.path.join(folder, f"{bpy.path.clean_name(obj_name)}_remap.png")
+        path = os.path.join(folder, f"{bpy.path.clean_name(obj_name)}{suffix}.png")
         img.filepath_raw = path
         img.file_format = "PNG"
         img.save()
@@ -257,7 +428,7 @@ def save_image(img, obj_name):
         img.pack()
 
 
-def remap_material(obj, img, uv_name):
+def remap_material(obj, img, uv_name, mask_img=None, hidden=(0.5, 0.5, 0.5)):
     mat = bpy.data.materials.new(f"PP_Remap_{obj.name}")
     mat.use_nodes = True
     nt = mat.node_tree
@@ -278,7 +449,28 @@ def remap_material(obj, img, uv_name):
     uv.location = (-350, 0)
     uv.uv_map = uv_name
     nt.links.new(uv.outputs["UV"], tex.inputs["Vector"])
-    nt.links.new(tex.outputs["Color"], emission.inputs["Color"])
+    if mask_img is None:
+        nt.links.new(tex.outputs["Color"], emission.inputs["Color"])
+    else:
+        # colour = mix(Hidden, photo, mask): the photo where camera A saw the surface
+        vis = nt.nodes.new("ShaderNodeTexImage")
+        vis.name = vis.label = MASK_NODE
+        vis.location = (-150, -280)
+        vis.image = mask_img
+        vis.interpolation = "Linear"
+        nt.links.new(uv.outputs["UV"], vis.inputs["Vector"])
+        rgb = nt.nodes.new("ShaderNodeRGB")
+        rgb.name = rgb.label = HIDDEN_NODE
+        rgb.location = (-150, 220)
+        rgb.outputs[0].default_value = (*hidden, 1.0)
+        mix_col = nt.nodes.new("ShaderNodeMix")
+        mix_col.data_type = "RGBA"
+        mix_col.label = "Photo / Hidden"
+        mix_col.location = (60, -60)
+        nt.links.new(vis.outputs["Color"], mix_col.inputs["Factor"])
+        nt.links.new(rgb.outputs["Color"], mix_col.inputs["A"])
+        nt.links.new(tex.outputs["Color"], mix_col.inputs["B"])
+        nt.links.new(mix_col.outputs["Result"], emission.inputs["Color"])
     nt.links.new(tex.outputs["Alpha"], mix.inputs["Fac"])
     nt.links.new(transparent.outputs["BSDF"], mix.inputs[1])
     nt.links.new(emission.outputs["Emission"], mix.inputs[2])
@@ -299,9 +491,14 @@ def remap(scene, obj, resolution=0):
     mesh = obj.data
     mesh.uv_layers.active = mesh.uv_layers[uv_name]
     res = resolution or auto_resolution(scene, cam, obj, uv_name)
-    img = bake_object(scene, obj, res)
+    grazing = float(scene.perspective_projector.remap_grazing_deg)
+    img, mask_img, hidden = bake_object(scene, obj, res, cam=cam, grazing_deg=grazing)
     save_image(img, obj.name)
-    mat = remap_material(obj, img, uv_name)
+    if mask_img is not None:
+        save_image(mask_img, obj.name, "_vis")
+        mask_img.colorspace_settings.name = "Non-Color"
+        obj["pp_vis"] = mask_img.name
+    mat = remap_material(obj, img, uv_name, mask_img, hidden)
     mesh.materials.clear()
     mesh.materials.append(mat)
     obj.modifiers.remove(obj.modifiers[projection.MOD_UVPROJECT])

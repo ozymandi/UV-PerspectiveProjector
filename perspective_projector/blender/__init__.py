@@ -1,8 +1,8 @@
 """Blender layer: properties, operators, panel, viewport editor."""
 
-from . import editor, ops_calibrate, ops_project, props, ui
+from . import blockout, editor, ops_calibrate, ops_project, props, ui
 
-_modules = (props, ops_calibrate, editor, ops_project, ui)
+_modules = (props, ops_calibrate, editor, ops_project, blockout, ui)
 
 
 def register():

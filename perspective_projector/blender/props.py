@@ -91,6 +91,21 @@ class PP_Calibration(bpy.types.PropertyGroup):
                                             update=_plane_distance)
     remap_resolution: bpy.props.IntProperty(name="Remap resolution", default=0, min=0, max=16384,
                                             description="Size of the baked texture; 0 = automatic")
+    # blockout
+    blockout_overlay: bpy.props.BoolProperty(
+        name="Alignment overlay", default=False,
+        description="Draw the edges of blockout and projected objects over the photo through camera A")
+    blockout_ref_set: bpy.props.BoolProperty(default=False)
+    blockout_ref_uv: bpy.props.FloatVectorProperty(size=2, default=(0.5, 0.5))
+    blockout_ref_distance: bpy.props.FloatProperty(
+        name="Assumed distance", default=10.0, min=0.01, unit="LENGTH",
+        description="Assumed distance from camera A to the reference corner; it sets the scale of "
+                    "everything built on the reference planes")
+    blockout_ref_axis: bpy.props.EnumProperty(
+        name="Reference plane", default="X",
+        items=[("X", "Along X", "Vertical plane through the corner running along world X"),
+               ("Y", "Along Y", "Vertical plane through the corner running along world Y")])
+
     remap_grazing_deg: bpy.props.FloatProperty(
         name="Grazing threshold", default=0.0, min=0.0, max=45.0, precision=1,
         description="Surfaces seen from camera A at less than this angle (degrees) also count as hidden "

@@ -12,6 +12,8 @@ After calibration the user still has to build the geometry the photo is projecte
   - **Box**: click two opposite corners of a footprint on the floor or on another blockout surface, then its top; creates an axis-aligned box (bench, table, sofa).
   - **Ceiling**: click a point where the ceiling meets a wall; creates a horizontal plane at that height over the blockout's extent.
 - Clicks land on existing blockout surfaces first, then on the ground, so objects can stand on tables or hang on walls.
+- **Reference corner** for photos without a visible floor (worm's-eye views, facades seen from below): the user clicks a vertical corner edge in the photo and enters an assumed distance; two vertical reference planes through that corner (along X and along Y, one selected at a time) catch the clicks that hit neither a blockout surface nor the ground. Walls and boxes can then be built on the facades; the scale is an assumption and the panel says so.
+- On a vertical base (a wall or a reference plane) the Box tool extrudes out of the surface by a depth click (balconies, pylons).
 - Created objects go into a `Blockout` collection with meaningful names and are ready for the existing Project and Remap.
 - **Alignment overlay**: a toggle that draws the edges of blockout and projected objects over the photo in camera A's view, so misplacement is visible at a glance.
 - Each tool is one undo step.
@@ -19,7 +21,7 @@ After calibration the user still has to build the geometry the photo is projecte
 ## Capabilities
 
 ### New Capabilities
-- `scene-blockout`: building simple, photo-aligned geometry (floor, walls, boxes, ceilings) from clicks on the calibrated photo, and the alignment overlay that checks it.
+- `scene-blockout`: building simple, photo-aligned geometry (floor, walls, boxes, ceilings) from clicks on the calibrated photo, also without a visible floor via a reference corner, and the alignment overlay that checks it.
 
 ### Modified Capabilities
 

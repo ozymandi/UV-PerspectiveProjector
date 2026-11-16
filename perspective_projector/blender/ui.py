@@ -144,7 +144,45 @@ class PP_PT_projection(bpy.types.Panel):
         layout.prop(props, "remap_grazing_deg")
 
 
-_classes = (PP_PT_main, PP_PT_camera, PP_PT_position, PP_PT_projection)
+class PP_PT_blockout(bpy.types.Panel):
+    bl_label = "Blockout"
+    bl_parent_id = "PP_PT_main"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Projector"
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.perspective_projector.image is not None
+
+    def draw(self, context):
+        layout = self.layout
+        props = context.scene.perspective_projector
+        if not props.calibrated:
+            layout.label(text="Calibrate first", icon="INFO")
+        grid = layout.grid_flow(columns=2, align=True)
+        grid.operator("perspective_projector.blockout_floor", icon="MESH_PLANE")
+        grid.operator("perspective_projector.blockout_wall", icon="MOD_BUILD")
+        grid.operator("perspective_projector.blockout_box", icon="MESH_CUBE")
+        grid.operator("perspective_projector.blockout_box_edge", icon="CUBE")
+        grid.operator("perspective_projector.blockout_ceiling", icon="AXIS_TOP")
+        layout.prop(props, "blockout_overlay")
+
+        box = layout.box()
+        box.label(text="No floor in the photo:")
+        row = box.row(align=True)
+        row.operator("perspective_projector.blockout_reference", icon="EMPTY_SINGLE_ARROW")
+        if props.blockout_ref_set:
+            row.operator("perspective_projector.blockout_clear_reference", text="", icon="X")
+        col = box.column(align=True)
+        col.enabled = props.blockout_ref_set
+        col.prop(props, "blockout_ref_distance")
+        col.row(align=True).prop(props, "blockout_ref_axis", expand=True)
+        if props.blockout_ref_set:
+            box.label(text=f"Scale assumed ({props.blockout_ref_distance:g} m to the corner)", icon="ERROR")
+
+
+_classes = (PP_PT_main, PP_PT_camera, PP_PT_position, PP_PT_projection, PP_PT_blockout)
 
 
 def register():

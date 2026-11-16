@@ -58,7 +58,35 @@ Which layout is which:
 - **Use known size**: pick **A Start / A End** on the ground along one horizontal axis and **B Start / B End** along the other, and type their real lengths (for example the length and the depth of a bench, or a tile's two sides). In a one-point photo this solves the focal length; in every case it sets the scale. It replaces the camera height and the reference distance while it is on.
 - **Use reference distance**: pick two points along an axis and type their real distance. X/Y points lie on the ground; for Z, the start is on the ground and the end is straight above it.
 
-### 2. Project
+### 2. Blockout (optional)
+
+Build simple geometry that lines up with the photo by clicking on it in camera A's view (the tools switch the view to camera A). Objects go into a `Blockout` collection as `Floor.001`, `Wall.001`, `Box.001`, `Ceiling.001`, ready for Project and Remap.
+
+- **Floor**: click the corners of a floor area; Enter or a click on the first corner finishes.
+- **Wall**: click two points where the wall meets the floor (or another blockout surface), then a point on its top edge. The base snaps to X or Y when it is within 5° of it.
+- **Box**: click two opposite corners of a footprint, then its top edge. The box stands on whatever you clicked: the floor, the top of another box, or a wall. On a wall the third click sets how far the box sticks out (balconies, pylons).
+- **Box from Edge**: for furniture against a wall, whose far footprint corner is hidden behind it: click the near bottom corner (on the floor or a box top), the top of that vertical edge, then the opposite top corner.
+- **Ceiling**: click where the ceiling meets a wall of the blockout; the ceiling spans the whole blockout (build the floor or two walls first).
+- Clicks land on blockout objects first, then on the floor. Esc or right click cancels a tool; each tool is one undo step.
+- **Alignment overlay**: draws the edges of blockout and projected objects over the photo through camera A, so a misplaced object shows at once.
+- **No floor in the photo** (looking up at a building): **Pick Reference Corner** and click a vertical corner edge of the building, set the **Assumed distance** to that corner, and choose the reference plane **Along X** or **Along Y**. Clicks that hit neither a blockout object nor the floor land on that vertical plane, so walls and boxes can be built on the facades. The scale is a guess: the panel says so, and doubling the distance doubles everything without changing what camera A sees. Switch the plane before clicking the other facade.
+
+A good order is floor, walls, boxes, ceiling; then select the `Blockout` collection and press **Project**, then **Remap**.
+
+From Python, every tool takes the clicks as photo coordinates (`u` right, `v` down, 0 to 1), so scripts do not need a mouse:
+
+```python
+import bpy
+
+def clicks(*uvs):
+    return [{"name": str(i), "uv": uv} for i, uv in enumerate(uvs)]
+
+ops = bpy.ops.perspective_projector
+ops.blockout_floor(points=clicks((0.2, 0.9), (0.8, 0.9), (0.7, 0.6), (0.3, 0.6)))
+ops.blockout_box(points=clicks((0.40, 0.80), (0.55, 0.75), (0.55, 0.65)))
+```
+
+### 3. Project
 
 - With nothing selected, **Project** creates `Proj_Plane`, a card with the photo's aspect ratio that exactly fills camera A's frame. **Plane distance** moves it along the view and keeps it fitted.
 - With meshes selected (your blockout), the projection goes onto them instead. Non-mesh objects are skipped.
@@ -69,7 +97,7 @@ Which layout is which:
 - Camera B (`Render_Cam_B`) is created once as a copy of camera A and becomes the scene camera. Move or animate it for parallax. Camera A stays where it is as the projector.
 - Project switches the scene's view transform to **Standard** so the photo keeps its original colours.
 
-### 3. Remap
+### 4. Remap
 
 - Select projected objects and press **Remap**. Each one is baked with Cycles into a texture on a regular UV map:
   - an existing UV map is reused;

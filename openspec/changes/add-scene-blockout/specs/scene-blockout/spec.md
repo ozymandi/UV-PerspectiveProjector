@@ -18,7 +18,7 @@ The Blockout tools SHALL be available only when camera A and its photo exist, SH
 - **THEN** no object is created and the scene is unchanged
 
 ### Requirement: Clicks land on existing surfaces before the ground
-A click SHALL be placed on the nearest blockout surface hit by the ray from camera A through the clicked pixel, and on the ground plane when no blockout surface is hit; a click that hits neither SHALL be ignored with a message.
+A click SHALL be placed on the nearest blockout surface hit by the ray from camera A through the clicked pixel, then on the ground plane, then on the selected reference plane when a reference corner is set; a click that hits none of them SHALL be ignored with a message.
 
 #### Scenario: Box standing on a table
 - **GIVEN** a blockout box whose top is 0.75 m high
@@ -26,8 +26,29 @@ A click SHALL be placed on the nearest blockout surface hit by the ray from came
 - **THEN** the new box's base is at 0.75 m
 
 #### Scenario: Click above the horizon
-- **WHEN** the user clicks the sky with no blockout surface behind it
+- **WHEN** the user clicks the sky with no blockout surface behind it and no reference corner is set
 - **THEN** the click is ignored and the status bar says it did not hit the ground or a surface
+
+#### Scenario: Click above the horizon with a reference corner
+- **GIVEN** a reference corner with the X reference plane selected
+- **WHEN** the user clicks a point of the photo above the horizon that lies on that facade
+- **THEN** the click lands on the X reference plane
+
+### Requirement: Reference corner for photos without a floor
+The add-on SHALL let the user set a reference corner by clicking a vertical edge in the photo and entering an assumed distance from camera A, SHALL offer two vertical reference planes through that corner (along X and along Y) of which one is selected, and SHALL state in the panel that the scale is assumed while the reference corner is in use.
+
+#### Scenario: Facade seen from below
+- **GIVEN** a worm's-eye photo with no ground visible and a reference corner set on the building's corner at 10 m
+- **WHEN** the user builds a wall with the Wall tool on the facade along X
+- **THEN** the wall lies in the X reference plane and its edges project onto the clicked pixels within 2 px through camera A
+
+#### Scenario: Changing the assumed distance
+- **WHEN** the user changes the assumed distance of the reference corner from 10 m to 20 m before building
+- **THEN** walls built afterwards are twice as far and twice as large, and their outline through camera A is the same
+
+#### Scenario: Scale is reported as assumed
+- **WHEN** a reference corner is set
+- **THEN** the Blockout panel shows that the scale comes from an assumed distance
 
 ### Requirement: Floor from clicked corners
 The Floor tool SHALL create a ground polygon whose corners lie where the user clicked, finished with Enter or a click on the first corner.
@@ -48,11 +69,28 @@ The Wall tool SHALL create a vertical rectangle from two base points and a top c
 - **THEN** the wall keeps that direction instead of snapping
 
 ### Requirement: Box from footprint and height
-The Box tool SHALL create an axis-aligned box from two opposite footprint corners and a height click, standing on the surface the footprint was clicked on.
+The Box tool SHALL create an axis-aligned box from two opposite footprint corners and a third click, standing on the surface the footprint was clicked on; on a horizontal base the third click gives the height, and on a vertical base (a wall or a reference plane) it gives the depth the box extends out of that surface.
 
 #### Scenario: Bench
 - **WHEN** the user clicks two opposite floor corners of a bench and then its top edge
 - **THEN** a box exists whose footprint corners and top edge project onto the clicked pixels within 2 px through camera A
+
+#### Scenario: Balcony on a facade
+- **GIVEN** a wall or reference plane along X
+- **WHEN** the user clicks two opposite corners of a balcony's back on that facade and then its front edge
+- **THEN** a box exists whose back face lies in the facade and whose front edge projects onto the clicked pixel within 2 px through camera A
+
+### Requirement: Box from its near edge
+A Box from Edge tool SHALL create an axis-aligned box on a horizontal base from three clicks: a near bottom corner, the top of that vertical edge, and the opposite top corner, for objects whose far footprint corner is hidden.
+
+#### Scenario: Furniture against a wall
+- **GIVEN** a bench standing on the floor against a wall, so the far corner of its footprint is hidden behind it
+- **WHEN** the user clicks the bench's near bottom corner on the floor, the top of that vertical edge, and the opposite top corner
+- **THEN** a box exists from the floor to the bench's top whose three clicked points project onto their pixels within 2 px through camera A
+
+#### Scenario: Vertical base refused
+- **WHEN** the first click lands on a wall
+- **THEN** no box is created and the message asks for a corner on a floor or a box top
 
 ### Requirement: Ceiling at a clicked height
 The Ceiling tool SHALL create a horizontal plane at the height of a point clicked on an existing vertical blockout surface, covering the horizontal extent of the existing blockout.

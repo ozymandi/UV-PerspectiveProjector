@@ -23,9 +23,15 @@ Turn a single photo into a camera-matched 3D set in three clicks, without leavin
 - It creates a projection camera with the photo as its background and sets the render resolution to the photo size.
 - If the photo is hard to read, the line editor opens with the best guess already placed. This happens with one-point views, organic scenes and cropped photos. Drag the handles onto real edges and the camera updates live.
 
+**Blockout (optional)**
+
+- Build the geometry to project onto by clicking on the photo: floor, walls, boxes (also boxes on a table or sticking out of a wall), boxes against a wall from their near edge, and ceilings.
+- No floor in the photo? Pick a building corner and an assumed distance, and build the facades on a vertical reference plane.
+- An alignment overlay draws the edges over the photo, so a misplaced object shows at once.
+
 **2. Project**
 
-- With nothing selected, Project creates a card that exactly fills the camera's frame. With meshes selected (your own blockout), it projects onto them instead.
+- With nothing selected, Project creates a card that exactly fills the camera's frame. With meshes selected (your blockout), it projects onto them instead.
 - It adds a simple subdivision, a UV Project modifier with the photo's aspect, and an unlit material that is transparent outside the frame.
 - A second, movable render camera is created. Move it to get parallax while the photo stays where it belongs.
 
@@ -52,6 +58,14 @@ Turn a single photo into a camera-matched 3D set in three clicks, without leavin
 - Objects remapped with 1.2.0 or earlier keep their old material until remapped again; in EEVEE their far faces can show through.
 
 Source code, tests and documentation: https://github.com/ozymandi/UV-PerspectiveProjector
+
+## Version notes (1.3.0)
+
+- New Blockout panel: build floor, walls, boxes and ceilings by clicking on the photo in the projection camera's view, ready for Project and Remap.
+- Box from Edge for furniture against a wall, whose far footprint corner is hidden.
+- Reference corner for photos without a visible floor (looking up at buildings): facades are built on a vertical plane through a picked corner at an assumed distance.
+- Alignment overlay of blockout and projected edges over the photo.
+- Every tool can also be called from Python with photo coordinates.
 
 ## Version notes (1.2.1)
 

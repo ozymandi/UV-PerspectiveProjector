@@ -18,6 +18,7 @@ CAMERA_B_NAME = "Render_Cam_B"
 UV_PROJ = "ProjUV"
 MOD_SUBDIV = "PP_Subdivision"
 MOD_UVPROJECT = "PP_UVProject"
+MATERIAL_VERSION = 3  # 3: DITHERED render method (2 used BLENDED); older materials are rebuilt
 MAX_EDGE_PX = 32.0
 MAX_LEVEL = 6
 
@@ -117,11 +118,11 @@ def auto_subdiv_level(scene, cam, obj):
 def projection_material(img):
     name = f"PP_Projection_{img.name}"
     mat = bpy.data.materials.get(name)
-    if mat is not None and mat.get("pp_image") == img.name and mat.get("pp_version") == 2:
+    if mat is not None and mat.get("pp_image") == img.name and mat.get("pp_version") == MATERIAL_VERSION:
         return mat
     mat = bpy.data.materials.new(name)
     mat["pp_image"] = img.name
-    mat["pp_version"] = 2
+    mat["pp_version"] = MATERIAL_VERSION
     mat.use_nodes = True
     nt = mat.node_tree
     nt.nodes.clear()
@@ -151,11 +152,18 @@ def projection_material(img):
     nt.links.new(transparent.outputs["BSDF"], mix.inputs[1])
     nt.links.new(emission.outputs["Emission"], mix.inputs[2])
     nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
-    if hasattr(mat, "surface_render_method"):
-        mat.surface_render_method = "BLENDED"
-    elif hasattr(mat, "blend_method"):
-        mat.blend_method = "BLEND"
+    set_render_method(mat)
     return mat
+
+
+def set_render_method(mat):
+    """Transparent outside the frame, opaque inside, with depth written so EEVEE draws faces in
+    order. The opacity is 0 or 1, so dithering leaves no noise; BLENDED would not sort the faces
+    of one object."""
+    if hasattr(mat, "surface_render_method"):
+        mat.surface_render_method = "DITHERED"
+    elif hasattr(mat, "blend_method"):
+        mat.blend_method = "HASHED"
 
 
 def _inside_frame_mask(nt, uv_socket, alpha_socket):

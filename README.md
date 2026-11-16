@@ -80,6 +80,7 @@ Which layout is which:
 - **Grazing threshold**: 0 by default. Raise it (in degrees) to also treat surfaces seen almost edge-on from camera A as hidden, which removes stretched photo on long floors and walls when camera B flies over them. Those surfaces then show the Hidden colour through camera A too.
 - Textures are saved to `textures/<object>_remap.png` and the masks to `textures/<object>_vis.png` next to the .blend file. If the file has never been saved, they are packed into it.
 - The render engine, bake settings and lights are restored afterwards; your own lights do not affect the mask.
+- Projected and remapped objects render with their faces in depth order in EEVEE as well as Cycles. Objects remapped with version 1.2.0 or earlier keep their old material, where EEVEE can show the far faces through the near ones; remap them again (or set the material's Render Method to Dithered) to fix that.
 
 Calibrate, Project and Remap are each a single undo step.
 

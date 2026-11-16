@@ -78,6 +78,7 @@ jobs:
 
       - name: Build the platform zips
         run: |
+          mkdir -p dist
           "$BLENDER" --factory-startup --command extension build --split-platforms \
             --source-dir perspective_projector --output-dir dist
       - name: Check the zips

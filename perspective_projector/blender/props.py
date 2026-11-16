@@ -91,6 +91,10 @@ class PP_Calibration(bpy.types.PropertyGroup):
                                             update=_plane_distance)
     remap_resolution: bpy.props.IntProperty(name="Remap resolution", default=0, min=0, max=16384,
                                             description="Size of the baked texture; 0 = automatic")
+    remap_grazing_deg: bpy.props.FloatProperty(
+        name="Grazing threshold", default=0.0, min=0.0, max=45.0, precision=1,
+        description="Surfaces seen from camera A at less than this angle (degrees) also count as hidden "
+                    "and show the Hidden colour; 0 keeps them, so the view through camera A is unchanged")
 
 
 _classes = (PP_Calibration,)

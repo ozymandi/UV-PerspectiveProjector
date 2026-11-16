@@ -141,6 +141,7 @@ class PP_PT_projection(bpy.types.Panel):
         layout.separator()
         layout.operator("perspective_projector.remap", icon="TEXTURE")
         layout.prop(props, "remap_resolution")
+        layout.prop(props, "remap_grazing_deg")
 
 
 _classes = (PP_PT_main, PP_PT_camera, PP_PT_position, PP_PT_projection)

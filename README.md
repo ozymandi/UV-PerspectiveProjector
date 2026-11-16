@@ -133,3 +133,17 @@ The real test photos are not in the repository (Pixabay's licence does not allow
 
 `tests/run_blender.py` uses an isolated Blender user folder, so it never touches your own preferences. Tests named `test_ui_*` open a Blender window for a few seconds (undo and viewport gizmos need one). Set `BLENDER` or pass `--blender` to use another Blender build, and `--user` to give it its own user folder, e.g.
 `python tests/run_blender.py --blender path/to/blender-4.2/blender.exe --user build/blender_user_42`.
+`--ui exclude` / `--ui only` skip or select the window tests, and `--zip PATH` installs a ready zip instead of building one.
+
+### CI and releases
+
+GitHub Actions (`.github/workflows/`):
+
+- `ci.yml`: the core tests run on every push and pull request. The Blender tests run on pull requests into `main` and on a manual run (Actions → CI → Run workflow). They run on Linux with Blender 4.2 LTS and 5.3 under Xvfb with Mesa software OpenGL. The window tests are a separate non-blocking step. `PP_TIME_FACTOR=3` relaxes the detection time limit on the slower runners.
+- `release.yml`: a `v*` tag builds the four platform zips, checks them with `tools/check_zips.py`, runs the Blender tests on the Linux zip and creates a **draft** GitHub release with the zips and notes.
+
+To release:
+
+1. Bump `version` in `perspective_projector/blender_manifest.toml` and add a `## Version notes (X.Y.Z)` section to `release/listing.md`. The release fails without it (`python tools/release_notes.py X.Y.Z` shows what will be used).
+2. Merge into `main`, then tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`. The tag must equal the manifest version.
+3. When the Release workflow is green, review the draft release on GitHub and publish it.

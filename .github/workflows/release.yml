@@ -1,0 +1,100 @@
+name: Release
+
+# Push a tag vX.Y.Z (equal to the manifest version) to build, check and test the four platform
+# zips and create a DRAFT GitHub release with them. Review the draft and publish it by hand.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  BLENDER_VERSION: "5.3.0"
+  PP_TIME_FACTOR: "3"
+  LIBGL_ALWAYS_SOFTWARE: "1"
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Tag matches the manifest version, no release yet
+        run: |
+          VER=$(python -c "import re,pathlib; print(re.search(r'(?m)^version\s*=\s*\"([^\"]+)\"', pathlib.Path('perspective_projector/blender_manifest.toml').read_text()).group(1))")
+          echo "manifest version $VER, tag $TAG"
+          [ "v$VER" = "$TAG" ] || { echo "::error::tag $TAG does not match manifest version $VER"; exit 1; }
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "::error::release $TAG already exists"; exit 1; fi
+          echo "VERSION=$VER" >> "$GITHUB_ENV"
+      - name: Release notes
+        run: python tools/release_notes.py "$VERSION" > "$RUNNER_TEMP/notes.md"
+
+      - name: Fetch wheels
+        run: python tools/fetch_wheels.py
+      - name: Compare wheels with PyPI digests
+        run: |
+          python - <<'EOF'
+          import hashlib, json, pathlib, re, sys, urllib.request
+          pkg = pathlib.Path("perspective_projector")
+          names = re.findall(r'"\./wheels/([^"]+\.whl)"', (pkg / "blender_manifest.toml").read_text())
+          bad = 0
+          for name in names:
+              dist, ver = name.split("-")[:2]
+              with urllib.request.urlopen(f"https://pypi.org/pypi/{dist.replace('_', '-')}/{ver}/json") as r:
+                  want = {u["filename"]: u["digests"]["sha256"] for u in json.load(r)["urls"]}.get(name)
+              got = hashlib.sha256((pkg / "wheels" / name).read_bytes()).hexdigest()
+              print(("ok  " if got == want else "BAD ") + name)
+              bad += got != want
+          sys.exit(bad)
+          EOF
+
+      - name: System libraries (Mesa, Xvfb)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb libgl1 libglx-mesa0 libegl1 libegl-mesa0 libgl1-mesa-dri \
+            libx11-6 libxi6 libxxf86vm1 libxfixes3 libxrender1 libxkbcommon0 libxkbcommon-x11-0 libsm6 libice6
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/blender/blender-${{ env.BLENDER_VERSION }}-linux-x64
+          key: blender-linux-x64-${{ env.BLENDER_VERSION }}
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/blender
+          curl -fsSL "https://download.blender.org/release/Blender${BLENDER_VERSION%.*}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ -C ~/blender
+      - name: Use Blender
+        run: echo "BLENDER=$HOME/blender/blender-${BLENDER_VERSION}-linux-x64/blender" >> "$GITHUB_ENV"
+
+      - name: Build the platform zips
+        run: |
+          mkdir -p dist
+          "$BLENDER" --factory-startup --command extension build --split-platforms \
+            --source-dir perspective_projector --output-dir dist
+      - name: Check the zips
+        run: python tools/check_zips.py dist --version "$VERSION"
+
+      - name: Blender tests on the Linux zip (background)
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" \
+            python tests/run_blender.py --zip "dist/perspective_projector-${VERSION}-linux_x64.zip" --ui exclude
+      - name: Blender tests on the Linux zip (window, non-blocking)
+        continue-on-error: true
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" \
+            python tests/run_blender.py --zip "dist/perspective_projector-${VERSION}-linux_x64.zip" --ui only
+
+      - name: Draft release
+        run: |
+          gh release create "$TAG" dist/perspective_projector-*.zip --draft --verify-tag \
+            --title "Perspective Projector $VERSION" --notes-file "$RUNNER_TEMP/notes.md"

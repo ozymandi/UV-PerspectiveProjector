@@ -3,7 +3,7 @@
 ## 1. Test runner and timing test
 
 - [x] 1.1 `tests/run_blender.py`: Blender path from `--blender`, `BLENDER`, or the newest installed `Blender X.Y` on Windows (clear error otherwise); verify locally that `python tests/run_blender.py -k smoke` finds Blender 5.3 with no argument
-- [ ] 1.2 `tests/run_blender.py`: `--zip PATH` installs a given zip instead of building, and `--ui {include,exclude,only}` filters the window tests; verify locally by running `--ui exclude` and `--ui only` (counts add up to the full suite) and `--zip` with a zip from `build/`
+- [x] 1.2 `tests/run_blender.py`: `--zip PATH` installs a given zip instead of building, and `--ui {include,exclude,only}` filters the window tests; verify locally by running `--ui exclude` and `--ui only` (counts add up to the full suite) and `--zip` with a zip from `build/`
 - [x] 1.3 `tests/core/test_detect.py`: scale the 10 s limit by `PP_TIME_FACTOR` (default 1); verify the core tests pass locally with and without the variable
 
 ## 2. Release helpers

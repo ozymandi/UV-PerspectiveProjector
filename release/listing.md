@@ -53,6 +53,10 @@ Turn a single photo into a camera-matched 3D set in three clicks, without leavin
 
 Source code, tests and documentation: https://github.com/ozymandi/UV-PerspectiveProjector
 
+## Version notes (1.2.1)
+
+- Fix: in EEVEE, a projected or remapped object no longer shows its far faces through its near faces (for example the front of a box through its back when seen from behind). Objects remapped with 1.2.0 or earlier keep their old material until remapped again.
+
 ## Version notes (1.2.0)
 
 - Visibility mask in Remap: back faces and surfaces hidden behind other objects no longer get stretched or wrong photo. They show a Hidden colour (by default the median of the visible part) that you can replace with any colour or texture.

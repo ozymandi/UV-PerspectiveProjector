@@ -14,10 +14,12 @@
 ## 3. Workflows
 
 - [x] 3.1 `.github/workflows/ci.yml`: core tests on push / PR; Blender tests on PRs into `main` and `workflow_dispatch`, matrix Blender 4.2 LTS + 5.3 on ubuntu, cached Blender and wheels, `xvfb-run` with Mesa, background tests blocking and UI tests as a `continue-on-error` step, `PP_TIME_FACTOR=3`; verify with a manual run on a branch: core job green, both Blender jobs reach the end and their logs show every test file
-- [ ] 3.2 `.github/workflows/release.yml`: on `v*` tags, tag/manifest check, wheels with PyPI digest check, split build, `tools/check_zips.py`, Blender tests on the Linux zip with `--zip`, draft release via `gh` with the four zips and `tools/release_notes.py` notes; verify by pushing a test tag (e.g. `v0.0.0-ci-test` on a branch with a matching manifest) and checking the draft release, then deleting the test tag and draft
+- [x] 3.2 `.github/workflows/release.yml`: on `v*` tags, tag/manifest check, wheels with PyPI digest check, split build, `tools/check_zips.py`, Blender tests on the Linux zip with `--zip`, draft release via `gh` with the four zips and `tools/release_notes.py` notes; verify by pushing a test tag (e.g. `v0.0.0-ci-test` on a branch with a matching manifest) and checking the draft release, then deleting the test tag and draft
 - [x] 3.3 Record what the first Blender 4.2 LTS run shows; if it fails for real reasons, list the failures in this change's notes and open a separate change for the fixes (do not fix the add-on here)
 
 Result of the first run (PR #9, run 43891317582, 16.11.2026): Blender 4.2.23 LTS and 5.3.0 on ubuntu-24.04 with Mesa llvmpipe, all 13 background and 7 window test files pass on both, about 20 min per job. No fixes needed for 4.2.
+
+Release test (tag v0.0.0-ci-test, run 43895615353): first run failed because `extension build` needs an existing output folder (fixed in release.yml); second run passed all steps and made a draft with the four zips and the notes; draft, tag and branch deleted afterwards.
 
 ## 4. Docs
 

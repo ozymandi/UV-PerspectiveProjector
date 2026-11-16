@@ -167,12 +167,7 @@ back.location = b.location + f * 6.0  # at the box's mid height: sees only faces
 back.rotation_euler = (b.location - back.location).to_track_quat("-Z", "Y").to_euler()
 for o in (w,):
     o.hide_render = True
-# Cycles for the back views: EEVEE's blended surfaces do not sort faces within one object,
-# so the box's front faces would show through its back faces there
-engine = scene.render.engine
-scene.render.engine = "CYCLES"
-scene.cycles.samples = 8
-img = H.render_camera(back, "vis_back", transparent=True)
+img = H.render_camera(back, "vis_back", transparent=True)  # EEVEE: faces drawn in depth order
 opaque = img[..., 3] > 0.9
 col = img[opaque][:, [2, 1, 0]].mean(axis=0)  # BGRA -> RGB
 # the render is in display space (Standard view transform): compare after the same transfer
@@ -193,7 +188,6 @@ img = H.render_camera(back, "vis_back_red", transparent=True)
 col = img[img[..., 3] > 0.9][:, [2, 1, 0]].mean(axis=0)
 print("back faces with red Hidden", col)
 H.check(col[0] > 0.8 and col[1] < 0.2 and col[2] < 0.2, f"Hidden texture not shown on hidden areas: {col}")
-scene.render.engine = engine
 w.hide_render = False
 after_red = H.render_camera(cam, "vis_after_red_a")
 H.check(float(np.abs(after_red[..., :3] - before_a[..., :3]).mean()) < 0.02,

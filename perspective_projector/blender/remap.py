@@ -475,10 +475,7 @@ def remap_material(obj, img, uv_name, mask_img=None, hidden=(0.5, 0.5, 0.5)):
     nt.links.new(transparent.outputs["BSDF"], mix.inputs[1])
     nt.links.new(emission.outputs["Emission"], mix.inputs[2])
     nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
-    if hasattr(mat, "surface_render_method"):
-        mat.surface_render_method = "BLENDED"
-    elif hasattr(mat, "blend_method"):
-        mat.blend_method = "BLEND"
+    projection.set_render_method(mat)
     return mat
 
 

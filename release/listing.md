@@ -49,6 +49,7 @@ Turn a single photo into a camera-matched 3D set in three clicks, without leavin
 - Lens distortion is not corrected. With converging verticals and only two line pairs, the optical centre is assumed at the centre of the image.
 - Areas the projection camera could not see show a flat colour after Remap, not real content; paint them or plug in a texture.
 - Before Remap, the live projection still puts the photo on faces the projection camera cannot see.
+- Objects remapped with 1.2.0 or earlier keep their old material until remapped again; in EEVEE their far faces can show through.
 
 Source code, tests and documentation: https://github.com/ozymandi/UV-PerspectiveProjector
 
